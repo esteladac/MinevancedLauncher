@@ -240,16 +240,10 @@ ipcMain.on('login-microsoft', async (event) => {
         const token = await xboxManager.getMinecraft();
         const mclcAuth = token.mclc(); // gets { access_token, client_token, uuid, name, ... }
 
-        // Multi-account array storage logic
-        let existing = savedConfig.accounts.findIndex(a => a.profile.uuid === mclcAuth.uuid);
-        if (existing >= 0) savedConfig.accounts[existing] = { type: 'microsoft', profile: mclcAuth };
-        else savedConfig.accounts.push({ type: 'microsoft', profile: mclcAuth });
-        
-        savedConfig.activeAccountId = mclcAuth.uuid;
-        saveConfig(savedConfig);
-        
-        event.sender.send('auth-success', { accounts: savedConfig.accounts, activeId: savedConfig.activeAccountId });
+        saveConfig({ authType: 'microsoft', authProfile: mclcAuth });
+        event.sender.send('auth-success', { type: 'microsoft', profile: mclcAuth });
     } catch (err) {
+        console.error("Microsoft Login Error:", err);
         event.sender.send('auth-failed', err.message || "Failed to authenticate with Microsoft.");
     }
 });
@@ -285,15 +279,10 @@ ipcMain.on('login-offline', async (event, username) => {
         // Strip out any non-serializable classes, functions, or promises down to POJO
         auth = JSON.parse(JSON.stringify(auth));
         
-        let existing = savedConfig.accounts.findIndex(a => a.profile.uuid === auth.uuid);
-        if (existing >= 0) savedConfig.accounts[existing] = { type: 'offline', profile: auth };
-        else savedConfig.accounts.push({ type: 'offline', profile: auth });
-        
-        savedConfig.activeAccountId = auth.uuid;
-        saveConfig(savedConfig);
-        
-        event.sender.send('auth-success', { accounts: savedConfig.accounts, activeId: savedConfig.activeAccountId });
+        saveConfig({ authType: 'offline', authProfile: auth });
+        event.sender.send('auth-success', { type: 'offline', profile: auth });
     } catch (err) {
+        console.error("Offline Login Error:", err);
         event.sender.send('auth-failed', "Failed to create offline profile.");
     }
 });
