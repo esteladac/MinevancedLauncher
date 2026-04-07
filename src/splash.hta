@@ -1,0 +1,73 @@
+<html>
+<head>
+    <title>Minevanced Splash</title>
+    <hta:application 
+        id="app" 
+        border="none" 
+        caption="no" 
+        innerborder="no" 
+        showintaskbar="no" 
+        scroll="no" 
+        contextmenu="no" 
+        selection="no" 
+    />
+    <script>
+        // Center the barebones window instantly before painting
+        window.resizeTo(300, 350);
+        window.moveTo((screen.width - 300) / 2, (screen.height - 350) / 2);
+    </script>
+    <style>
+        body {
+            margin: 0; 
+            padding: 0; 
+            background: #121016; 
+            color: #FFFFFF; 
+            font-family: Arial, sans-serif;
+            border: 1px solid #3D2E4D;
+            text-align: center;
+        }
+        .container {
+            margin-top: 130px;
+        }
+        .brand {
+            font-size: 26px; 
+            font-weight: 900; 
+            letter-spacing: 4px; 
+            color: #7B52F4; 
+            margin-bottom: 15px;
+        }
+        .loader-bar {
+            width: 150px; 
+            height: 2px; 
+            background: #333; 
+            margin: 0 auto;
+            position: relative; 
+            overflow: hidden;
+        }
+        .progress {
+            width: 50px; 
+            height: 100%; 
+            background: #7B52F4; 
+            position: absolute; 
+            left: -50px;
+        }
+    </style>
+</head>
+<body bgcolor="#121016">
+    <div class="container">
+        <div class="brand">MINEVANCED</div>
+        <div class="loader-bar">
+            <div class="progress" id="prog"></div>
+        </div>
+    </div>
+    <script>
+        // Legacy IE engine doesn't reliably support CSS animations, so we use a lightweight JS tick
+        var pos = -50;
+        setInterval(function() {
+            pos += 8;
+            if (pos > 150) pos = -50;
+            document.getElementById('prog').style.left = pos + 'px';
+        }, 30);
+    </script>
+</body>
+</html>

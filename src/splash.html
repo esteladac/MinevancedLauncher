@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #121016;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #FFFFFF;
+            font-family: sans-serif;
+            border: 1px solid #3D2E4D;
+            overflow: hidden;
+        }
+
+        .brand {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 5px;
+            color: #7B52F4;
+            margin-bottom: 10px;
+        }
+
+        /* Tiny, lite loading bar */
+        .loader-bar {
+            width: 150px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .loader-bar::after {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 100%;
+            background: #7B52F4;
+            animation: scan 1.2s infinite linear;
+        }
+        
+        .debug-text {
+            font-family: Consolas, monospace;
+            font-size: 10px;
+            color: #888;
+            margin-top: 15px;
+            text-align: center;
+            max-width: 80%;
+            display: none;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            letter-spacing: 2px;
+            font-weight: bold;
+            color: #aaaaaa;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        @keyframes scan {
+            0% { left: -50px; }
+            100% { left: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="brand" id="brand-title">MINEVANCED</div>
+    <div class="subtitle" id="brand-subtitle">INITIALIZING</div>
+    <div class="loader-bar" id="load-bar"></div>
+    <div class="debug-text" id="debug-log">System check...</div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        ipcRenderer.on('splash-log', (event, msg, showDebug) => {
+            const debugLog = document.getElementById('debug-log');
+            if (showDebug) {
+                debugLog.style.display = 'block';
+                debugLog.innerText = msg;
+            }
+        });
+
+        ipcRenderer.on('splash-state', (event, state) => {
+            if (state === 'shutdown') {
+                document.getElementById('brand-title').style.color = '#ff4d4d'; // Red for shutdown
+                document.getElementById('brand-subtitle').innerText = 'STOPPING...';
+                document.getElementById('load-bar').style.background = 'rgba(255, 77, 77, 0.1)';
+                document.styleSheets[0].insertRule('.loader-bar::after { background: #ff4d4d !important; }', document.styleSheets[0].cssRules.length);
+            }
+        });
+    </script>
+</body>
+</html>

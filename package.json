@@ -1,0 +1,32 @@
+{
+  "name": "minevanced_launcher",
+  "version": "0.0.1",
+  "description": "The minecraft launcher for Minevanced modpack, also focused on modpack sharing",
+  "homepage": "https://github.com/esteladac/MinevancedLauncher#readme",
+  "author": "Esteladac",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.esteladac.minevanced",
+    "productName": "Minevanced",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "src/logo.png"
+    }
+  },
+  "dependencies": {
+    "minecraft-launcher-core": "^3.18.2",
+    "msmc": "^5.0.5",
+    "tomate-loaders": "^2.0.2"
+  },
+  "devDependencies": {
+    "electron": "^41.1.1",
+    "electron-builder": "^26.8.1"
+  }
+}
