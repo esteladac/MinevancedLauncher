@@ -46,15 +46,15 @@
                         <svg class="status-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                         <div class="status-text">
                             <small>Players online:</small>
-                            <strong>24 / 50</strong>
+                            <strong>Offline</strong>
                         </div>
                     </div>
 
-                    <div class="status-module download-module hidden" id="download-tracker" style="position: relative; overflow: hidden; padding-bottom: 24px; min-width: 260px;">
+                    <div class="status-module download-module hidden" id="download-tracker" style="position: relative; overflow: hidden; padding-bottom: 24px; min-width: 260px; width: 260px;">
                         <svg class="status-icon" viewBox="0 0 24 24" style="z-index: 2;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         <div class="status-text" style="z-index: 2;">
                             <small>Minevanced Sync</small>
-                            <strong id="dl-progress">Waiting for engine...</strong>
+                            <strong id="dl-progress" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; display: inline-block;">Waiting for engine...</strong>
                         </div>
                         <div style="position: absolute; bottom: 12px; left: 20px; right: 20px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
                             <div id="dl-progress-bar" style="height: 100%; width: 0%; background: var(--accent-purple); transition: width 0.3s ease; box-shadow: 0 0 8px var(--accent-purple);"></div>
@@ -62,9 +62,9 @@
                     </div>
 
                     <div class="status-module profile-module" id="top-right-profile-btn" style="cursor: pointer;">
-                        <div class="status-text right-align">
-                            <strong>esteladac</strong>
-                            <small>Admin Level</small>
+                        <div class="status-text" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                            <strong>Guest</strong>
+                            <small>Not Logged In</small>
                         </div>
                         <img src="https://minotar.net/helm/Steve/40.png" alt="Avatar" class="avatar">
                     </div>
@@ -75,6 +75,40 @@
                     <div id="view-home" class="view active">
                         <div class="hero-section" style="position: relative; z-index: 2;">
                             <h1 class="modpack-title">MINEVANCED</h1>
+                            
+                            <div id="version-selector-container" class="version-selectors" style="margin-top: -10px; margin-bottom: 20px; display: none;">
+                                <!-- Vanilla version selector -->
+                                <div id="vanilla-selector" style="display: none; align-items: center; gap: 10px; position: relative;">
+                                    <span style="font-size: 13px; color: var(--text-dim); text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Minecraft Version:</span>
+                                    <div class="custom-dropdown" id="vanilla-dropdown">
+                                        <div class="custom-dropdown-header">
+                                            <input type="text" id="vanilla-version-input" value="Latest" data-real-value="latest" placeholder="Search versions..." autocomplete="off">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0; pointer-events: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </div>
+                                        <div class="custom-dropdown-list" id="vanilla-options">
+                                            <div class="custom-dropdown-item" data-value="latest">Latest Release</div>
+                                            <!-- Dynamically populated below with ALL release versions -->
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Minevanced version selector -->
+                                <div id="minevanced-selector" style="display: none; align-items: center; gap: 10px; position: relative;">
+                                    <span style="font-size: 13px; color: var(--text-dim); text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Modpack Profile:</span>
+                                    <div class="custom-dropdown" id="minevanced-dropdown">
+                                        <div class="custom-dropdown-header" id="minevanced-dropdown-header">
+                                            <span id="minevanced-version-display" style="flex: 1;">Modded</span>
+                                            <input type="hidden" id="minevanced-version-select" value="modded">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0; pointer-events: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </div>
+                                        <div class="custom-dropdown-list" id="minevanced-options">
+                                            <div class="custom-dropdown-item" data-value="modded">Modded</div>
+                                            <div class="custom-dropdown-item" data-value="optimized">Optimised</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <p class="modpack-desc">A highly optimized vanilla survival experience on the latest version of Minecraft. Experience the game exactly how we designed it for our homelab.</p>
                             <div class="action-buttons">
                                 <button class="play-btn" id="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"></path></svg> PLAY</button>
@@ -82,7 +116,6 @@
                         </div>
                         <footer class="bottom-bar">
                             <button class="mod-list-btn"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> MOD LIST</button>
-                            <button class="website-btn"><svg class="btn-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> OUR SITE</button>
                         </footer>
                     </div>
 
@@ -137,12 +170,18 @@
                             </div>
                             <div class="setting-item">
                                 <div class="setting-info">
-                                    <h3>Homelab Authentication</h3>
+                                    <h3>MinevancedAuth</h3>
                                     <p>Secure offline connection. Only allowed on trusted local servers.</p>
                                 </div>
-                                <div class="setting-control">
-                                    <input type="text" id="offline-user-input" placeholder="Username" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
-                                    <button class="play-btn" id="login-offline-btn" style="padding: 10px 15px; font-size: 12px; background: #333;">Login</button>
+                                <div class="setting-control" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+                                    <div style="display: flex; gap: 5px;">
+                                        <input type="text" id="offline-user-input" placeholder="Username" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
+                                        <input type="password" id="offline-pass-input" placeholder="Password" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
+                                    </div>
+                                    <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
+                                        <button class="play-btn" id="login-offline-btn" style="padding: 10px 20px; font-size: 12px; background: #333;">Login</button>
+                                        <button class="play-btn" id="register-offline-btn" style="padding: 10px 20px; font-size: 12px; background: var(--accent-purple);">Register</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -150,9 +189,23 @@
 
                     <!-- Modpack Selector View -->
                     <div id="view-modpacks" class="view hidden">
-                        <div class="settings-header">
-                            <h2>Modpacks</h2>
-                            <p>Select or install available modpacks.</p>
+                        <div class="settings-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h2>Modpacks</h2>
+                                <p>Select or install available modpacks.</p>
+                            </div>
+                            <button id="btn-global-manage" class="play-btn" style="padding: 10px 15px; font-size: 12px; display: flex; align-items: center; gap: 5px; margin-right: 40px;" title="Manage Modpacks">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                <span id="btn-global-manage-text">Manage</span>
+                            </button>
+                        </div>
+                        
+                        <div id="manage-controls-container" style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 0px solid rgba(255,255,255,0.05); overflow: hidden; opacity: 0; max-height: 0; margin-bottom: 0; padding: 0 10px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                            <input type="text" id="inline-invite-input" placeholder="Invite Code (e.g. VIP-PACK-2026)" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; font-size: 12px;">
+                            <button class="play-btn" id="inline-btn-add" style="padding: 10px 20px; font-size: 12px; display: flex; gap: 5px; align-items: center;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                Add Modpack
+                            </button>
                         </div>
                         
                         <div class="modpack-grid" id="modpack-list-container">
@@ -176,16 +229,264 @@
                 </div>
 
             </main>
+            
+            <!-- Custom Themed Alert Modal -->
+            <div id="custom-alert" class="modal-overlay hidden" style="z-index: 2000;">
+                <div class="modal-content">
+                    <h3 id="custom-alert-title">Notice</h3>
+                    <p id="custom-alert-message">This is an alert.</p>
+                    <button class="play-btn modal-btn" id="custom-alert-close">OK</button>
+                </div>
+            </div>
+
+            <!-- Custom Themed Confirm Modal -->
+            <div id="custom-confirm" class="modal-overlay hidden" style="z-index: 2000;">
+                <div class="modal-content">
+                    <h3 id="custom-confirm-title">Confirm</h3>
+                    <p id="custom-confirm-message">Are you sure?</p>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button class="play-btn modal-btn" id="custom-confirm-ok" style="background: #e74c3c; flex: 1;">Delete</button>
+                        <button class="play-btn modal-btn" id="custom-confirm-cancel" style="background: rgba(255,255,255,0.1); flex: 1;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onboarding Modal -->
+            <div id="onboarding-modal" class="modal-overlay hidden" style="z-index: 1500;">
+                <div class="modal-content" style="max-width: 450px; text-align: center;">
+                    <h2 style="color: var(--accent-purple); margin-top: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px;">MINEVANCED</h2>
+                    <p style="color: var(--text-main); font-weight: 500; margin-bottom: 20px;">Welcome to the next generation of homelab modpacks.</p>
+                    
+                    <div style="text-align: left; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                        <ul style="color: var(--text-dim); font-size: 13px; line-height: 1.8; margin: 0; padding-left: 20px;">
+                            <li><strong style="color: white;">Smart Sync:</strong> Delta-updates only the mods you need.</li>
+                            <li><strong style="color: white;">Dual Auth:</strong> Login securely using a Premium Microsoft or MinevancedAuth account.</li>
+                            <li><strong style="color: white;">High Performance:</strong> Optimized instant-boot framework.</li>
+                        </ul>
+                    </div>
+                    
+                    <button class="play-btn modal-btn" id="onboarding-close-btn" style="background: var(--accent-purple);">Let's Get Started</button>
+                </div>
+            </div>
+
+            <!-- Dev Password Modal -->
+            <div id="dev-password-modal" class="modal-overlay hidden">
+                <div class="modal-content">
+                    <h3 style="color: #ff5555;">Developer Backdoor</h3>
+                    <p>Enter the master override key.</p>
+                    <input type="password" id="dev-password-input" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; width: 80%; margin-bottom: 20px; outline: none; text-align: center;">
+                    <div style="display: flex; gap: 10px;">
+                        <button class="play-btn modal-btn" id="dev-cancel-btn" style="background: #333;">Cancel</button>
+                        <button class="play-btn modal-btn" id="dev-submit-btn" style="background: #ff5555;">Unlock</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dev Control Panel -->
+            <div id="dev-control-panel" class="modal-overlay hidden">
+                <div class="modal-content" style="max-width: 650px; width: 90vw; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
+                        <h3 style="margin: 0; color: #ff5555; display: flex; align-items: center; gap: 10px;">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            TERMINAL OVERRIDE ACTIVE
+                        </h3>
+                        <button id="dev-panel-close" style="background: none; border: none; color: white; cursor: pointer; font-size: 18px; opacity: 0.5;">✕</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 20px;">
+                        <div style="flex: 1;">
+                            <h4 style="color: var(--accent-purple); margin-top: 0; font-size: 14px;">Admin Tools</h4>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; font-size: 12px; border-left: 3px solid #ff5555;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
+                                        <strong>Auth Restriction Bypass</strong>
+                                        <input type="checkbox" id="dev-toggle-auth" checked style="accent-color: #ff5555; cursor: pointer;">
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <strong>Anti-Cheat Bypass</strong>
+                                        <input type="checkbox" id="dev-toggle-anticheat" checked style="accent-color: #ff5555; cursor: pointer;">
+                                    </div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; font-size: 12px; border-left: 3px solid #ff5555;">
+                                    <h5 style="margin: 0 0 8px 0; color: #ff5555;">Build Temp Instance</h5>
+                                    <input type="text" id="dev-temp-name" placeholder="Instance ID (e.g. test-modpack)" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 6px; border-radius: 4px; outline: none; width: 100%; box-sizing: border-box; margin-bottom: 6px;">
+                                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                                        <input type="text" id="dev-temp-version" placeholder="MC Version (e.g. 1.20.4)" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 4px 8px; border-radius: 4px; outline: none; flex: 1;">
+                                        <select id="dev-temp-loader" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 4px; border-radius: 4px; outline: none; flex: 1;">
+                                            <option value="fabric">Fabric</option>
+                                            <option value="neoforge">NeoForge</option>
+                                            <option value="vanilla">Vanilla</option>
+                                        </select>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <button class="play-btn" id="dev-btn-create-instance" style="font-size: 11px; padding: 8px; flex: 2; background: #ff5555;">Inject Manifest</button>
+                                        <button class="play-btn" id="dev-btn-delete-instances" style="font-size: 11px; padding: 8px; flex: 1; background: rgba(232, 17, 35, 0.4); border: 1px solid rgba(232, 17, 35, 0.8); color: #ffcccc;">Purge Dev</button>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="play-btn" id="dev-btn-clear-logs" style="flex: 1; font-size: 11px; padding: 8px; background: rgba(255,255,255,0.1);">Clear Trace</button>
+                                    <button class="play-btn" id="dev-btn-flush-config" style="flex: 1; font-size: 11px; padding: 8px; background: rgba(232, 17, 35, 0.4); border: 1px solid rgba(232, 17, 35, 0.8); color: #ffcccc;">Flush Config</button>
+                                    <button class="play-btn" id="dev-btn-show-onboarding" style="flex: 1; font-size: 11px; padding: 8px; background: rgba(123, 82, 244, 0.8);">Replay Intro</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex: 1.5; background: #08060c; border-radius: 8px; padding: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative;">
+                            <h4 style="color: var(--accent-purple); margin: 0 0 10px 0; font-size: 14px; display: flex; justify-content: space-between;">
+                                Live Telemetry
+                                <button id="dev-btn-refresh-logs" style="background: none; border: none; color: var(--accent-purple); cursor: pointer; font-size: 12px;">Refresh</button>
+                            </h4>
+                            <pre id="dev-log-output" style="margin: 0; font-size: 11px; color: #a0a0a0; overflow-y: auto; height: 200px; white-space: pre-wrap; font-family: Consolas, monospace; line-height: 1.4;"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
         </div>
     </div>
 
     <script>
         const { ipcRenderer } = require('electron');
         
+        // --- CUSTOM ALERT LOGIC ---
+        function showCustomAlert(title, message) {
+            document.getElementById('custom-alert-title').innerText = title;
+            document.getElementById('custom-alert-message').innerText = message;
+            document.getElementById('custom-alert').classList.remove('hidden');
+        }
+
+        let confirmCallback = null;
+        function showCustomConfirm(title, message, btnText, callback) {
+            document.getElementById('custom-confirm-title').innerText = title;
+            document.getElementById('custom-confirm-message').innerText = message;
+            document.getElementById('custom-confirm-ok').innerText = btnText || 'Confirm';
+            document.getElementById('custom-confirm').classList.remove('hidden');
+            confirmCallback = callback;
+        }
+
+        document.getElementById('custom-alert-close').addEventListener('click', () => {
+            document.getElementById('custom-alert').classList.add('hidden');
+        });
+
+        document.getElementById('custom-confirm-ok').addEventListener('click', () => {
+            document.getElementById('custom-confirm').classList.add('hidden');
+            if (confirmCallback) confirmCallback(true);
+        });
+
+        document.getElementById('custom-confirm-cancel').addEventListener('click', () => {
+            document.getElementById('custom-confirm').classList.add('hidden');
+            if (confirmCallback) confirmCallback(false);
+        });
+
         // Window Controls
-        document.getElementById('btn-minimize').addEventListener('click', () => ipcRenderer.send('window-minimize'));
+        function doMinimizeAnimation() {
+            document.body.classList.add('minimizing');
+            setTimeout(() => {
+                ipcRenderer.send('window-minimize-done');
+                setTimeout(() => document.body.classList.remove('minimizing'), 500);
+            }, 250);
+        }
+
+        document.getElementById('btn-minimize').addEventListener('click', () => {
+            ipcRenderer.send('window-minimize');
+        });
+        
+        ipcRenderer.on('trigger-minimize-animation', () => {
+            doMinimizeAnimation();
+        });
+
         document.getElementById('btn-close').addEventListener('click', () => ipcRenderer.send('window-close'));
         document.getElementById('btn-exit').addEventListener('click', () => ipcRenderer.send('window-close'));
+
+        // --- DEVELOPER BACKDOOR LOGIC ---
+        let devModeUnlocked = false;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '!') {
+                if (devModeUnlocked) {
+                    e.preventDefault();
+                    document.getElementById('dev-control-panel').classList.remove('hidden');
+                    ipcRenderer.send('dev-request-logs');
+                } else if (document.getElementById('view-settings').classList.contains('active')) {
+                    e.preventDefault(); // Stop the '!' character from immediately printing
+                    document.getElementById('dev-password-modal').classList.remove('hidden');
+                    document.getElementById('dev-password-input').focus();
+                }
+            }
+        });
+
+        document.getElementById('dev-cancel-btn').addEventListener('click', () => {
+            document.getElementById('dev-password-modal').classList.add('hidden');
+            document.getElementById('dev-password-input').value = '';
+        });
+
+        const submitDevPassword = () => {
+            const pass = document.getElementById('dev-password-input').value;
+            ipcRenderer.send('verify-dev-password', pass);
+        };
+
+        document.getElementById('dev-submit-btn').addEventListener('click', submitDevPassword);
+        document.getElementById('dev-password-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitDevPassword();
+        });
+
+        document.getElementById('dev-panel-close').addEventListener('click', () => {
+            document.getElementById('dev-control-panel').classList.add('hidden');
+        });
+
+        ipcRenderer.on('dev-password-result', (event, success) => {
+            document.getElementById('dev-password-modal').classList.add('hidden');
+            document.getElementById('dev-password-input').value = '';
+            if (success) {
+                devModeUnlocked = true;
+                
+                showCustomAlert("Developer Mode", "Terminal Override Authorized.");
+                document.getElementById('dev-control-panel').classList.remove('hidden');
+                ipcRenderer.send('dev-request-logs'); // Fetch initial logs
+            } else {
+                showCustomAlert("Access Denied", "Invalid override key.");
+            }
+        });
+
+        ipcRenderer.on('dev-logs-data', (event, logs) => {
+            const pre = document.getElementById('dev-log-output');
+            pre.innerText = logs;
+            pre.scrollTop = pre.scrollHeight;
+        });
+
+        document.getElementById('dev-btn-refresh-logs').addEventListener('click', () => ipcRenderer.send('dev-request-logs'));
+        document.getElementById('dev-btn-clear-logs').addEventListener('click', () => ipcRenderer.send('dev-clear-logs'));
+        document.getElementById('dev-btn-flush-config').addEventListener('click', () => {
+            ipcRenderer.send('dev-flush-config');
+            showCustomAlert("Config Flushed", "App config has been erased. Restart required.");
+        });
+
+        // --- NEW: DEV SETTINGS TOGGLES & INSTANCE BUILDER ---
+        document.getElementById('dev-btn-show-onboarding').addEventListener('click', () => {
+            document.getElementById('dev-control-panel').classList.add('hidden');
+            document.getElementById('onboarding-modal').classList.remove('hidden');
+        });
+        document.getElementById('onboarding-close-btn').addEventListener('click', () => {
+            document.getElementById('onboarding-modal').classList.add('hidden');
+        });
+
+        document.getElementById('dev-toggle-auth').addEventListener('change', (e) => ipcRenderer.send('dev-update-settings', { bypassAuth: e.target.checked }));
+        document.getElementById('dev-toggle-anticheat').addEventListener('change', (e) => ipcRenderer.send('dev-update-settings', { bypassAntiCheat: e.target.checked }));
+
+        document.getElementById('dev-btn-create-instance').addEventListener('click', () => {
+            const name = document.getElementById('dev-temp-name').value.trim();
+            const version = document.getElementById('dev-temp-version').value.trim();
+            const loader = document.getElementById('dev-temp-loader').value;
+            
+            if (!name || !version) return showCustomAlert("Invalid Input", "Please provide an Instance ID and a Minecraft Version before injecting.");
+            
+            ipcRenderer.send('dev-create-instance', { id: name, version, loader });
+            showCustomAlert("Instance Built", `Temporary manifest '${name}' successfully generated.\nSwitch to Modpacks view to see it.`);
+        });
+
+        document.getElementById('dev-btn-delete-instances').addEventListener('click', () => {
+            ipcRenderer.send('dev-delete-instances');
+            showCustomAlert("Instances Purged", "All developer test instances have been deleted.");
+        });
 
         // --- NAVIGATION ROUTING ---
         let activeInstanceId = 'minevanced'; // Default instance
@@ -232,8 +533,12 @@
         const debugToggle = document.getElementById('debug-splash-toggle');
         
         // Request saved config on load
+        let initialConfigLoad = null;
         ipcRenderer.send('request-config');
-        ipcRenderer.on('load-config', (event, config) => {
+        ipcRenderer.on('load-config', (event, config) => {            if (config.firstRun !== false) {
+                document.getElementById('onboarding-modal').classList.remove('hidden');
+                ipcRenderer.send('save-config', { firstRun: false });
+            }
             if (config.ram) {
                 ramSlider.value = config.ram;
                 ramDisplay.innerText = `${config.ram} GB`;
@@ -243,6 +548,9 @@
             }
             if (config.authProfile && config.authProfile.name) {
                 updateProfileUI(config.authProfile.name, config.authType);
+            }
+            if (config.lastInstance) {
+                initialConfigLoad = config.lastInstance;
             }
         });
 
@@ -260,6 +568,8 @@
         function updateProfileUI(name, type) {
             const profileModule = document.querySelector('.profile-module .status-text');
             profileModule.innerHTML = `<strong>${name}</strong><small>${type === 'microsoft' ? 'Premium Account' : 'Offline Mode'}</small>`;
+            profileModule.className = 'status-text right-align';
+            profileModule.style.alignItems = 'flex-end';
             const avatar = document.querySelector('.profile-module .avatar');
             
             // Fade effect for profile picture
@@ -269,7 +579,18 @@
                 avatar.src = img.src;
                 avatar.style.opacity = '1';
             };
-            img.src = `https://minotar.net/helm/${name}/40.png`;
+            img.onerror = () => {
+                // Fallback if network fails
+                avatar.src = 'https://minotar.net/helm/MHF_Steve/40.png';
+                avatar.style.opacity = '1';
+            }
+            
+            // Use specific default skin for offline accounts
+            if (type === 'offline') {
+                img.src = 'https://minotar.net/helm/MHF_Steve/40.png';
+            } else {
+                img.src = `https://minotar.net/helm/${name}/40.png`;
+            }
         }
 
         document.getElementById('login-ms-btn').addEventListener('click', () => {
@@ -280,20 +601,45 @@
         });
 
         document.getElementById('login-offline-btn').addEventListener('click', () => {
-            const user = document.getElementById('offline-user-input').value || 'HomelabGuest';
-            ipcRenderer.send('login-offline', user);
+            const user = document.getElementById('offline-user-input').value;
+            const pass = document.getElementById('offline-pass-input').value;
+            if (!user || (!pass && pass !== '')) return showCustomAlert("Login Required", "Please enter your MinevancedAuth credentials before continuing.");
+            ipcRenderer.send('login-offline', { username: user, password: pass });
+        });
+
+        document.getElementById('register-offline-btn').addEventListener('click', () => {
+            const user = document.getElementById('offline-user-input').value;
+            const pass = document.getElementById('offline-pass-input').value;
+            if (!user || (!pass && pass !== '')) return showCustomAlert("Registration Error", "Please enter both a username and a password to register.");
+            ipcRenderer.send('register-offline', { username: user, password: pass });
         });
 
         ipcRenderer.on('auth-success', (event, data) => {
             updateProfileUI(data.profile.name, data.type);
+            
+            // Clear password field for security
+            if (document.getElementById('offline-pass-input')) {
+                document.getElementById('offline-pass-input').value = '';
+            }
+            
+            showCustomAlert("Login Successful", `Welcome back, ${data.profile.name}!`);
+            
             document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`;
             document.getElementById('login-ms-btn').style.pointerEvents = "auto";
         });
 
         ipcRenderer.on('auth-failed', (event, error) => {
-            alert("Login Failed: " + error);
+            showCustomAlert("Authentication Failed", error);
             document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`;
             document.getElementById('login-ms-btn').style.pointerEvents = "auto";
+        });
+
+        ipcRenderer.on('register-success', (event, message) => {
+            showCustomAlert("Registration Complete!", message + "\nYou can now log in.");
+        });
+
+        ipcRenderer.on('register-failed', (event, error) => {
+            showCustomAlert("Registration Failed", error);
         });
 
         // --- PLAY LOGIC ---
@@ -316,9 +662,28 @@
             // Show tracker pill
             document.getElementById('download-tracker').classList.remove('hidden');
             
-            // Send Launch Signal + User RAM Setting to backend
+            // Gather exact selected version profiles
             const allocatedRam = ramSlider.value;
-            ipcRenderer.send('launch-game', { ram: allocatedRam, instance: activeInstanceId });
+            let selectedVersion = 'latest';
+            let selectedProfile = '';
+
+            if (activeInstanceId === 'vanilla') {
+                const rawVal = document.getElementById('vanilla-version-input').value || 'latest';
+                selectedVersion = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
+            } else if (activeInstanceId === 'minevanced') {
+                selectedProfile = document.getElementById('minevanced-version-select').value;
+                selectedVersion = null; // Do not send version to backend, let it fall back to built-in JSON
+            }
+
+            const payload = {
+                ram: allocatedRam,
+                instance: activeInstanceId,
+                profile: selectedProfile
+            };
+            if (selectedVersion) payload.version = selectedVersion;
+
+            // Send Launch Signal + User RAM Setting to backend
+            ipcRenderer.send('launch-game', payload);
         });
 
         // Listen for live sync/download progress from backend
@@ -387,26 +752,115 @@
 
         // Request available modpacks from manifests/ directory
         ipcRenderer.send('request-modpacks');
+        
+        // Modpack Options Modal logic
+        
+        let globalModpackList = []; // store modpacks securely here
+        
+        let isManageMode = false;
+
+        document.getElementById('btn-global-manage').addEventListener('click', () => {
+            isManageMode = !isManageMode;
+            
+            const btnText = document.getElementById('btn-global-manage-text');
+            const controlsContainer = document.getElementById('manage-controls-container');
+            const actionBtns = document.querySelectorAll('.modpack-manage-action');
+            const textInfos = document.querySelectorAll('.modpack-info-transition');
+            
+            if (isManageMode) {
+                btnText.innerText = 'Done';
+                document.getElementById('btn-global-manage').style.background = '#28a745'; // Green when editing
+                controlsContainer.style.opacity = '1';
+                controlsContainer.style.maxHeight = '60px'; // expands box
+                controlsContainer.style.marginBottom = '20px';
+                controlsContainer.style.padding = '10px';
+                controlsContainer.style.borderWidth = '1px';
+                
+                actionBtns.forEach(btn => {
+                    btn.style.maxWidth = '100px';
+                    btn.style.opacity = '1';
+                    btn.style.padding = '8px 15px';
+                    btn.style.borderWidth = '1px';
+                });
+                
+                // Add more margin for the text / move it to the left to let place for buttons
+                textInfos.forEach(info => {
+                    info.style.transform = 'translateX(-40px)';
+                    info.style.marginRight = '40px';
+                });
+            } else {
+                btnText.innerText = 'Manage';
+                document.getElementById('btn-global-manage').style.background = 'var(--accent-purple)';
+                controlsContainer.style.opacity = '0';
+                controlsContainer.style.maxHeight = '0';
+                controlsContainer.style.marginBottom = '0';
+                controlsContainer.style.padding = '0 10px';
+                controlsContainer.style.borderWidth = '0';
+                
+                actionBtns.forEach(btn => {
+                    btn.style.maxWidth = '0';
+                    btn.style.opacity = '0';
+                    btn.style.padding = '8px 0';
+                    btn.style.borderWidth = '0';
+                });
+                
+                // Restore text margin / position
+                textInfos.forEach(info => {
+                    info.style.transform = 'translateX(0)';
+                    info.style.marginRight = '20px';
+                });
+            }
+        });
+
+        document.getElementById('inline-btn-add').addEventListener('click', () => {
+            const code = document.getElementById('inline-invite-input').value.trim();
+            if (!code) {
+                showCustomAlert('Error', 'Please enter an invite code.');
+                return;
+            }
+            ipcRenderer.send('resolve-invite', code);
+            document.getElementById('inline-invite-input').value = '';
+        });
+
+        ipcRenderer.on('invite-success', (event, message) => {
+            showCustomAlert('Success', message);
+            // Refresh modpacks
+            ipcRenderer.send('request-modpacks');
+        });
+
+        ipcRenderer.on('invite-error', (event, message) => {
+            showCustomAlert('Error', message);
+        });
+
         ipcRenderer.on('load-modpacks', (event, modpacks) => {
             const container = document.getElementById('modpack-list-container');
             container.innerHTML = '';
             
+            globalModpackList = modpacks; // Store in memory for the manager
+
             if (modpacks.length === 0) {
                 container.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding-top: 40px;">No manifests found. Place .json files in the manifests folder.</p>';
             } else {
                 modpacks.forEach(mp => {
                     const card = document.createElement('div');
                     card.className = 'modpack-card';
+
+                    const isOfficial = mp.isOfficial ? true : false;
+                    const manageBtn = isOfficial 
+                        ? `<button class="play-btn modpack-reinstall-btn modpack-manage-action" data-id="${mp.id}" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 11px; padding: 8px 0; overflow: hidden; opacity: 0; max-width: 0; border-width: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap;">Reinstall</button>`
+                        : `<button class="play-btn modpack-delete-btn modpack-manage-action" data-id="${mp.id}" style="background: rgba(220,53,69,0.8); border: 1px solid rgba(220,53,69,1); font-size: 11px; padding: 8px 0; overflow: hidden; opacity: 0; max-width: 0; border-width: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap;">Delete</button>`;
+
                     card.innerHTML = `
                         <div class="modpack-card-bg" style="background-image: url('${mp.coverImage || 'https://launcher.mojang.com/api/launcher-ui/images/grass.png'}');"></div>
                         <div class="modpack-card-gradient"></div>
                         <div class="modpack-card-content">
-                            <div class="modpack-card-info">
-                                <h3>${mp.name}</h3>
-                                <p>Version ${mp.minecraftVersion} • ${mp.description || 'Custom Modpack'}</p>
+                            <div class="modpack-card-info modpack-info-transition" style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-right: 20px;">
+                                <h3 style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">${mp.name}</h3>
+                                <p style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">Version ${mp.minecraftVersion} • ${mp.description || 'Custom Modpack'}</p>
                             </div>
-                            <div class="modpack-card-actions">
-                                <button class="play-btn modpack-action-btn" data-id="${mp.id}" data-name="${mp.name}" data-loader="${mp.modLoader || 'vanilla'}" data-cover="${mp.coverImage || 'https://launcher.mojang.com/api/launcher-ui/images/grass.png'}" data-desc="${mp.description || 'Custom modpack.'}">Select</button>
+                            <div class="modpack-card-actions" style="display: flex; gap: 8px;">
+                                ${manageBtn}
+                                <button class="play-btn modpack-action-btn" data-id="${mp.id}" data-name="${mp.name}" data-loader="${mp.modLoader || 'vanilla'}" data-cover="${mp.coverImage || 'https://launcher.mojang.com/api/launcher-ui/images/grass.png'}" data-desc="${mp.description || 'Custom modpack.'}" style="flex: 1; transition: flex-grow 0.3s cubic-bezier(0.4, 0, 0.2, 1);">Select</button>
                             </div>
                         </div>
                     `;
@@ -422,6 +876,12 @@
                         const loaderType = e.target.getAttribute('data-loader').toLowerCase();
                         const coverImg = e.target.getAttribute('data-cover');
                         const descText = e.target.getAttribute('data-desc');
+                        
+                        // Reset all buttons to 'Select'
+                        buttons.forEach(b => {
+                            b.innerText = 'Select';
+                            b.style.background = 'var(--accent-purple)';
+                        });
                         
                         // Tell user they selected it
                         e.target.innerText = 'Selected';
@@ -447,7 +907,25 @@
                             }
                         };
                         img.src = coverImg;
+                                                // Show/Hide version selectors
+                        const vsContainer = document.getElementById('version-selector-container');
+                        const vanillaSelector = document.getElementById('vanilla-selector');
+                        const minevancedSelector = document.getElementById('minevanced-selector');
                         
+                        if (targetId === 'vanilla') {
+                            vsContainer.style.display = 'block';
+                            vanillaSelector.style.display = 'flex';
+                            minevancedSelector.style.display = 'none';
+                        } else if (targetId === 'minevanced') {
+                            vsContainer.style.display = 'block';
+                            minevancedSelector.style.display = 'flex';
+                            vanillaSelector.style.display = 'none';
+                            // Ensure "Modded" is the default when switching to Minevanced pack
+                            document.getElementById('minevanced-version-select').value = 'modded';
+                            document.getElementById('minevanced-version-display').innerText = 'Modded';
+                        } else {
+                            vsContainer.style.display = 'none';
+                        }
                         // Hide the Mod List button if it's a Vanilla instance
                         if (loaderType === 'vanilla' || loaderType === 'none') {
                             document.querySelector('.mod-list-btn').style.display = 'none';
@@ -458,16 +936,51 @@
                         // Set tracking variable so PLAY button launches correct instance
                         activeInstanceId = targetId;
                         
+                        // Save choice to config
+                        ipcRenderer.send('save-config', { lastInstance: targetId });
+                        
                         // Let backend know they clicked (useful for expanding logic later)
                         ipcRenderer.send('request-mods', targetId);
                         console.log(`User selected modpack instance: ${targetName} (${targetId})`);
                         
-                        // Route back home and reset appearance immediately
-                        e.target.innerText = 'Select';
-                        e.target.style.background = 'var(--accent-purple)';
-                        document.querySelector('.nav-btn[data-target="view-home"]').click();
+                        // Only route to home view on click if it's an explicit UI interaction, not an automated one
+                        if (e.isTrusted) {
+                            document.querySelector('.nav-btn[data-target="view-home"]').click();
+                        }
                     });
                 });
+
+                // Add listeners for dynamic manage buttons
+                container.querySelectorAll('.modpack-reinstall-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const targetId = e.target.getAttribute('data-id');
+                          showCustomConfirm('Reinstall Instance', 'Reinstalling will purge the existing local instance folder and sync freshly from the server on the next launch. Proceed?', 'Reinstall', (confirmed) => {
+                              if (confirmed) {
+                                  ipcRenderer.send('delete-instance', targetId);
+                              }
+                          });
+                      });
+                  });
+
+                  container.querySelectorAll('.modpack-delete-btn').forEach(btn => {
+                      btn.addEventListener('click', (e) => {
+                          const targetId = e.target.getAttribute('data-id');
+                          showCustomConfirm('Delete Modpack', 'Are you sure you want to delete this custom modpack? All its instance files will be removed locally.', 'Delete', (confirmed) => {
+                              if (confirmed) {
+                                  ipcRenderer.send('delete-instance', targetId);
+                              }
+                          });                      });
+                  });
+                // Auto select if config had a stored preference
+                if (initialConfigLoad) {
+                    const storedBtn = container.querySelector(`.modpack-action-btn[data-id="${initialConfigLoad}"]`);
+                    if (storedBtn) {
+                        storedBtn.click();
+                    }
+                } else if (buttons.length > 0) {
+                    // Force the very first one as default
+                    buttons[0].click();
+                }
             }
         });
 
@@ -485,6 +998,106 @@
                 }
             };
             img.src = 'https://minecraft.wiki/images/Plains.png?38132';
+
+            // Custom Dropdown Logic
+            function setupDropdown(dropdownId, inputId, optionsId, displayId, hiddenInputId) {
+                const header = document.querySelector(`#${dropdownId} .custom-dropdown-header`);
+                const list = document.getElementById(optionsId);
+                const items = list.querySelectorAll('.custom-dropdown-item');
+                const input = document.getElementById(inputId);
+                
+                header.addEventListener('click', (e) => {
+                    if (e.target !== input) {
+                        list.classList.toggle('show');
+                        if (input && list.classList.contains('show')) input.focus();
+                    }
+                });
+
+                if (input) {
+                    input.addEventListener('focus', () => list.classList.add('show'));
+                    input.addEventListener('click', (e) => e.stopPropagation());
+                    
+                    input.addEventListener('input', (e) => {
+                        const filter = e.target.value.toLowerCase();
+                        list.classList.add('show');
+                        items.forEach(item => {
+                            const text = item.innerText.toLowerCase();
+                            item.style.display = text.includes(filter) ? 'block' : 'none';
+                        });
+                    });
+                }
+
+                items.forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const val = item.getAttribute('data-value');
+                        const text = item.innerText;
+                        
+                        if (input) {
+                            if (val === 'latest') {
+                                input.value = 'Latest';
+                                input.dataset.realValue = 'latest';
+                            } else {
+                                input.value = val;
+                                input.dataset.realValue = val;
+                            }
+                        }
+                        if (displayId && hiddenInputId) {
+                            document.getElementById(displayId).innerText = text;
+                            document.getElementById(hiddenInputId).value = val;
+                        }
+                        
+                        list.classList.remove('show');
+                        e.stopPropagation();
+                    });
+                });
+
+                // Close when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!document.getElementById(dropdownId).contains(e.target)) {
+                        list.classList.remove('show');
+                        
+                        // Force rewrite 'latest' to Capitalized 'Latest' if they clicked off 
+                        // while it happened to be fully typed out as lower-case
+                        if (input && input.value.toLowerCase() === 'latest') {
+                            input.value = 'Latest';
+                        }
+                    }
+                });
+            }
+
+            // Fetch comprehensive Minecraft versions list dynamically
+            fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json')
+                .then(res => res.json())
+                .then(data => {
+                    const list = document.getElementById('vanilla-options');
+                    // data.versions is ordered newest to oldest automatically
+                    data.versions.forEach(v => {
+                        // Filter only full release versions
+                        if (v.type !== 'release') return;
+
+                        // Remove versions under 1.7
+                        const parts = v.id.split('.');
+                        if (parts.length >= 2 && parts[0] === '1') {
+                            const minor = parseInt(parts[1], 10);
+                            if (minor < 7) return;
+                        }
+
+                        const div = document.createElement('div');
+                        div.className = 'custom-dropdown-item';
+                        div.setAttribute('data-value', v.id);
+                        div.innerText = v.id; // Just the clean version number
+                        list.appendChild(div);
+                    });
+                    // Initialize the dropdown after the DOM elements are built
+                    setupDropdown('vanilla-dropdown', 'vanilla-version-input', 'vanilla-options', null, null);
+                })
+                .catch(err => {
+                    console.error("Failed to fetch Minecraft versions list:", err);
+                    setupDropdown('vanilla-dropdown', 'vanilla-version-input', 'vanilla-options', null, null);
+                });
+
+            // Initialize the Minevanced dropdown synchronously
+            setupDropdown('minevanced-dropdown', null, 'minevanced-options', 'minevanced-version-display', 'minevanced-version-select');
         });
     </script>
 </body>

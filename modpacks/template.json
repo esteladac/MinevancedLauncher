@@ -1,0 +1,11 @@
+{
+  "name": "Template",
+  "version": "1.0.0",
+  "minecraftVersion": "latest",
+  "modLoader": "vanilla",
+  "modLoaderVersion": "latest",
+  "description": "Template modpack.",
+  "coverImage": "https://minecraft.wiki/images/Plains.png?38132",
+  "author": "Minevanced Team",
+  "mods": []
+}

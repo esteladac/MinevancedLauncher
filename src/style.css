@@ -33,6 +33,12 @@ body {
     position: relative;
     display: flex;
     flex-direction: column;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.minimizing .window-wrapper {
+    transform: scale(0.95) translateY(20px);
+    opacity: 0;
 }
 
 .window-wrapper::before {
@@ -135,14 +141,14 @@ body {
     max-height: 400px;
 }
 
-.mod-grid::-webkit-scrollbar {
+.mod-grid::-webkit-scrollbar, .modpack-grid::-webkit-scrollbar {
     width: 6px;
 }
-.mod-grid::-webkit-scrollbar-track {
+.mod-grid::-webkit-scrollbar-track, .modpack-grid::-webkit-scrollbar-track {
     background: rgba(0,0,0,0.2);
     border-radius: 4px;
 }
-.mod-grid::-webkit-scrollbar-thumb {
+.mod-grid::-webkit-scrollbar-thumb, .modpack-grid::-webkit-scrollbar-thumb {
     background: var(--accent-purple);
     border-radius: 4px;
 }
@@ -232,7 +238,7 @@ body {
 .status-text small { color: var(--text-dim); font-size: 11px; }
 .status-text strong { font-size: 14px; font-weight: 600; }
 .right-align { text-align: right; }
-.avatar { width: 35px; height: 35px; border-radius: 50%; opacity: 0; transition: opacity 0.3s ease-in-out; }
+.avatar { width: 35px; height: 35px; border-radius: 50%; opacity: 1; transition: opacity 0.3s ease-in-out; }
 .status-icon { width: 20px; height: 20px; fill: none; stroke: var(--text-dim); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* --- ROUTING SYSTEM --- */
@@ -241,6 +247,7 @@ body {
     display: flex;
     flex-direction: column;
     margin-top: 20px;
+    min-height: 0;
 }
 
 .view {
@@ -248,6 +255,7 @@ body {
     flex-direction: column;
     flex: 1;
     animation: fadeIn 0.3s ease-out;
+    min-height: 0;
 }
 .view.active { display: flex; }
 
@@ -299,6 +307,55 @@ body {
 .play-btn:hover { background: #8e68fc; transform: scale(1.05); }
 .play-icon { width: 16px; height: 16px; fill: currentColor; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
+/* --- CUSTOM MODALS --- */
+.modal-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.2s ease-in-out;
+}
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.modal-content {
+    background: var(--module-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 25px 30px;
+    max-width: 350px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transform: translateY(0);
+    transition: transform 0.2s ease-out;
+}
+.modal-overlay.hidden .modal-content {
+    transform: translateY(-20px);
+}
+.modal-content h3 {
+    margin: 0 0 10px 0;
+    color: var(--accent-purple);
+    font-size: 18px;
+    font-weight: 600;
+}
+.modal-content p {
+    margin: 0 0 20px 0;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.5;
+}
+.modal-btn {
+    width: 100%;
+    padding: 12px 0;
+    font-size: 14px;
+}
+
 .bottom-bar { display: flex; justify-content: space-between; margin-bottom: 10px; }
 .bottom-bar button {
     background: var(--module-bg); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); color: var(--text-dim); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold;
@@ -338,6 +395,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px
     flex-direction: column;
     gap: 15px;
     margin-top: 10px;
+    overflow-y: auto;
+    padding-right: 15px;
+    flex: 1;
+    min-height: 0;
 }
 
 .modpack-card {
@@ -351,6 +412,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px
     align-items: center;
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .modpack-card:hover {
@@ -413,4 +475,79 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px
     padding: 10px 25px;
     font-size: 13px;
     white-space: nowrap;
+}
+
+/* --- CUSTOM DROPDOWNS --- */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 140px;
+}
+.custom-dropdown-header {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s border-color 0.2s;
+}
+.custom-dropdown-header:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.2);
+}
+.custom-dropdown-header input {
+    background: transparent;
+    border: none;
+    color: white;
+    outline: none;
+    width: 100%;
+    font-size: 13px;
+    font-family: inherit;
+}
+.custom-dropdown-header input::placeholder {
+    color: var(--text-dim);
+}
+.custom-dropdown-list {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    max-height: 180px;
+    overflow-y: auto;
+    background: #1a1622; /* Matches the dark app theme tightly */
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    z-index: 2000;
+    display: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    padding: 4px 0;
+}
+.custom-dropdown-list.show {
+    display: block;
+}
+.custom-dropdown-list::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-dropdown-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-dropdown-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}
+.custom-dropdown-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: background 0.2s, color 0.2s;
+}
+.custom-dropdown-item:hover, .custom-dropdown-item.focused {
+    background: var(--accent-purple);
+    color: white;
 }

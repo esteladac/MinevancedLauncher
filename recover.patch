@@ -1,0 +1,628 @@
+diff --git a/src/main.js b/src/main.js
+index f9afcf3..160db12 100644
+--- a/src/main.js
++++ b/src/main.js
+@@ -4,6 +4,7 @@ const timeStart = performance.now();
+ const fs = require('fs');
+ const path = require('path');
+ const { spawn } = require('child_process');
++const crypto = require('crypto');
+
+ // This creates a log file right where you launch the app
+ const logPath = path.join(process.cwd(), 'startup.log');
+@@ -121,12 +122,29 @@ function createWindow() {
+     });
+ }
+
+-bootLog("STEP 4: Electron app object acquired. Calling app.whenReady()...");   
+-app.whenReady().then(() => {
+-    bootLog("STEP 6: app.whenReady() resolved! Chromium engine is initialized and ready.");
+-    createWindow();
+-});
+-bootLog("STEP 5: Wait assigned to app.whenReady(). Main thread now yielding.");
++bootLog("STEP 4: Electron app object acquired. Requesting Single Instance Lock...");
++
++const gotTheLock = app.requestSingleInstanceLock();
++
++if (!gotTheLock) {
++    bootLog("STEP 5: Another instance is already running! Quitting immediately.");
++    app.quit();
++} else {
++    app.on('second-instance', (event, commandLine, workingDirectory) => {      
++        // Restores and focuses the existing window if user clicks shortcut again
++        if (mainWindow) {
++            if (mainWindow.isMinimized()) mainWindow.restore();
++            mainWindow.focus();
++        }
++    });
++
++    bootLog("STEP 5: Lock acquired. Calling app.whenReady()...");
++    app.whenReady().then(() => {
++        bootLog("STEP 6: app.whenReady() resolved! Chromium engine is initialized and ready.");
++        createWindow();
++    });
++    bootLog("STEP 5.5: Wait assigned to app.whenReady(). Main thread now yielding.");
++}
+
+ // --- Window Controls ---
+ ipcMain.on('window-minimize', () => mainWindow.minimize());
+@@ -204,28 +222,132 @@ ipcMain.on('request-mods', (event, instanceName) => {    
+     event.sender.send('load-mods', modArray);
+ });
+
+-// --- Read Modpack Manifests ---
+-ipcMain.on('request-modpacks', (event) => {
+-    const manifestsPath = path.join(app.getAppPath(), 'manifests');
+-    let modpacks = [];
+-    if (fs.existsSync(manifestsPath)) {
+-        try {
+-            const files = fs.readdirSync(manifestsPath);
+-            files.forEach(file => {
+-                if (file.endsWith('.json')) {
+-                    const content = fs.readFileSync(path.join(manifestsPath, file), 'utf8');
+-                    try {
+-                        const parsed = JSON.parse(content);
+-                        parsed.id = file.replace('.json', ''); // simple ID    
+-                        modpacks.push(parsed);
+-                    } catch(jsonErr) {
+-                        console.error('Failed to parse manifest json:', file, jsonErr);
+-                    }
++// --- Read Modpack Manifests from Server ---
++ipcMain.on('request-modpacks', async (event) => {
++    let onlinePacks = [];
++    try {
++        const fetch = (await import('node-fetch')).default;
++        const response = await fetch('http://localhost:8080/manifests').catch(() => ({ ok: false }));
++        if (response.ok) {
++            const data = await response.json();
++            if (data.success && data.modpacks) {
++                onlinePacks = data.modpacks; // usually doesn't include Minevanced+Vanilla anymore since we hardcode them, but let's keep server ones
++            }
++        }
++    } catch (err) {
++        console.error('Failed to fetch manifests from server:', err);
++    }
++
++    try {
++        // Read Built-in / Hardcoded offline modpacks safely before compilation                                                                                
++        const builtinPath = path.join(__dirname, '.builtin-packs.json');                                                                                       
++        if (fs.existsSync(builtinPath)) {
++            try {
++                const builtins = JSON.parse(fs.readFileSync(builtinPath, 'utf-8'));
++                // Sort builtins inversely so unshifting leaves them in original order,
++                // or just remove matching online packs and unshift.
++                // Let's filter out any online pack that matches a builtin, then prepend builtins.
++                onlinePacks = onlinePacks.filter(p => !builtins.find(b => b.id === p.id));
++
++                // Now unshift built-ins in reverse order so the first builtin ends up at index 0
++                for (let i = builtins.length - 1; i >= 0; i--) {
++                    const b = builtins[i];
++                    b.isOfficial = true;
++                    b.isBuiltin = true;
++                    onlinePacks.unshift(b); // Set as top priority
+                 }
+-            });
+-        } catch(e) { console.error('Failed checking manifests folder', e); }   
++            } catch(e) {
++                console.error("Failed to parse .builtin-packs.json", e);       
++            }
++        }
++
++        // Read local invites
++        const localManifestDir = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + "/.local/share"), '.minevanced', 'manifests');
++        if (!fs.existsSync(localManifestDir)) fs.mkdirSync(localManifestDir, { recursive: true });
++
++        const localFiles = fs.readdirSync(localManifestDir);
++        for (const file of localFiles) {
++            if (file.startsWith('INVITE_') && file.endsWith('.json')) {        
++                try {
++                    const localData = JSON.parse(fs.readFileSync(path.join(localManifestDir, file), 'utf-8'));
++                    if (!onlinePacks.find(p => p.id === localData.id)) {                                                                                       
++                        localData.isOfficial = false; // explicitly mark as custom
++                        onlinePacks.push(localData);
++                    }
++                } catch(e) {}
++            }
++        }
++
++        event.sender.send('load-modpacks', onlinePacks);
++    } catch (err) {
++        console.error('Failed formatting packs:', err);
++        event.sender.send('load-modpacks', onlinePacks);
++
++ipcMain.on('resolve-invite', async (event, code) => {
++    try {
++        const fetch = (await import('node-fetch')).default;
++        const response = await fetch('http://localhost:8080/invite/resolve', { 
++            method: 'POST',
++            headers: { 'Content-Type': 'application/json' },
++            body: JSON.stringify({ code })
++        });
++        
++        const data = await response.json();
++        if (data.success) {
++            const manifest = data.manifest;
++
++            // Check if it's attempting to overwrite a built-in pack
++            const builtinPath = path.join(__dirname, '.builtin-packs.json');   
++            if (fs.existsSync(builtinPath)) {
++                try {
++                    const builtins = JSON.parse(fs.readFileSync(builtinPath, 'utf-8'));
++                    if (builtins.find(b => b.id === manifest.id)) {
++                        event.sender.send('invite-error', 'Cannot overwrite built-in modpacks.');
++                        return;
++                    }
++                } catch (e) {}
++            }
++
++            const localManifestDir = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + "/.local/share"), '.minevanced', 'manifests');
++            if (!fs.existsSync(localManifestDir)) fs.mkdirSync(localManifestDir, { recursive: true });
++
++            fs.writeFileSync(
++                path.join(localManifestDir, `INVITE_${manifest.id}.json`),     
++                JSON.stringify(manifest, null, 4)
++            );
++
++            event.sender.send('invite-success', `Successfully added modpack: ${manifest.name}`);
++        } else {
++            event.sender.send('invite-error', data.error || 'Invalid invite code.');
++        }
++    } catch (err) {
++        console.error('Invite resolution failed:', err);
++        event.sender.send('invite-error', 'Server offline or unreachable.');   
++    }
++});
++
++ipcMain.on('delete-instance', (event, targetId) => {
++    try {
++        const baseDir = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + "/.local/share"), '.minevanced');
++        const instancePath = path.join(baseDir, 'instances', targetId);        
++        
++        if (fs.existsSync(instancePath)) {
++            fs.rmSync(instancePath, { recursive: true, force: true });
++        }
++        
++        const manifestPath = path.join(baseDir, 'manifests', `INVITE_${targetId}.json`);
++        if (fs.existsSync(manifestPath)) {
++            fs.rmSync(manifestPath);
++        }
++        
++        event.sender.send('invite-success', 'Instance files purged successfully.');
++        
++        // Re-trigger load
++        ipcMain.emit('request-modpacks', event);
++    } catch (err) {
++        console.error('Failed to delete instance:', err);
++        event.sender.send('invite-error', 'Failed to delete instance.');       
+     }
+-    event.sender.send('load-modpacks', modpacks);
+ });
+
+ // --- Authentication (MSMC & Offline) ---
+@@ -273,8 +395,37 @@ ipcMain.on('login-microsoft-code', async (event, urlOrCode) => {
+     }
+ });
+
+-ipcMain.on('login-offline', async (event, username) => {
++ipcMain.on('login-offline', async (event, credentials) => {
+     try {
++        const { username, password } = credentials;
++        const config = loadConfig();
++
++        // 1. Strict Limit Rule: 1 cracked account maximum
++        // Bypassed if devModeActive === true AND the specific devAuth bypass is toggled
++        if (!(devModeActive && devConfig.bypassAuth) && config.authType === 'offline' && config.authProfile) {
++            if (config.authProfile.name.toLowerCase() !== username.toLowerCase()) {
++                return event.sender.send('auth-failed', "Strict Limit Rule: Only 1 offline account is allowed per launcher installation.");
++            }
++        }
++
++        // 2. MinevancedAuth verification
++        const response = await fetch('http://localhost:8080/auth/login', {     
++            method: 'POST',
++            headers: { 'Content-Type': 'application/json' },
++            body: JSON.stringify({ username, password })
++        }).catch(err => null);
++
++        if (!response) {
++            return event.sender.send('auth-failed', "MinevancedAuth Server Offline. Cannot verify credentials.");
++        }
++
++        const data = await response.json();
++        
++        if (!response.ok || !data.success) {
++            return event.sender.send('auth-failed', data.error || "Invalid MinevancedAuth credentials.");
++        }
++
++        // 3. Successful Verification, get local Auth payload
+         let auth = await Authenticator.getAuth(username);
+         // Strip out any non-serializable classes, functions, or promises down to POJO
+         auth = JSON.parse(JSON.stringify(auth));
+@@ -287,8 +438,175 @@ ipcMain.on('login-offline', async (event, username) => {  
+     }
+ });
+
++// --- Register Offline/MinevancedAuth ---
++ipcMain.on('register-offline', async (event, credentials) => {
++    try {
++        const { username, password } = credentials;
++        const fetch = (await import('node-fetch')).default;
++        
++        const response = await fetch('http://localhost:8080/auth/register', {  
++            method: 'POST',
++            headers: { 'Content-Type': 'application/json' },
++            body: JSON.stringify({ username, password })
++        }).catch(err => null);
++
++        if (!response) {
++            return event.sender.send('register-failed', "MinevancedAuth Server Offline. Cannot reach server.");
++        }
++
++        const data = await response.json();
++        
++        if (!response.ok || !data.success) {
++            return event.sender.send('register-failed', data.error || "Failed to register account.");
++        }
++
++        event.sender.send('register-success', data.message || "Account created successfully.");
++    } catch (err) {
++        console.error("Offline Registration Error:", err);
++        event.sender.send('register-failed', "An unexpected error occurred during registration.");
++    }
++});
++
+ // --- Launch Engine (Lazy Loaded) ---
+ let activeGameProcess = null;
++let devModeActive = false; // The secret Developer Backdoor switch
++let devConfig = { bypassAuth: true, bypassAntiCheat: true }; // Controls specific overrides
++
++// --- DEVELOPER BACKDOOR ---
++ipcMain.on('verify-dev-password', (event, pwd) => {
++    // Hidden target hash computed mathematically against target plaintext "play.io2"
++    const targetHash = "81862ebdd29ee6f84b06ff53adcb62e1cb0161e296c88ffdae190ec5eeb99937";
++    const inputHash = crypto.createHash('sha256').update(pwd).digest('hex');   
++    
++    if (inputHash === targetHash) {
++        devModeActive = true;
++        event.sender.send('dev-password-result', true);
++    } else {
++        event.sender.send('dev-password-result', false);
++    }
++});
++
++ipcMain.on('dev-request-logs', (event) => {
++    try {
++        if (fs.existsSync(logPath)) {
++            const logs = fs.readFileSync(logPath, 'utf8');
++            event.sender.send('dev-logs-data', logs);
++        } else {
++            event.sender.send('dev-logs-data', "No startup trace found at " + logPath);
++        }
++    } catch(e) {
++        event.sender.send('dev-logs-data', "Error reading logs: " + e.message);
++    }
++});
++
++ipcMain.on('dev-clear-logs', (event) => {
++    if (!devModeActive) return;
++    try {
++        fs.writeFileSync(logPath, '--- Minevanced Boot Trace (High Precision) ---\n[DEV] Logs purged successfully.\n');
++        event.sender.send('dev-logs-data', fs.readFileSync(logPath, 'utf8'));  
++    } catch(e) {}
++});
++
++ipcMain.on('dev-flush-config', (event) => {
++    if (!devModeActive) return;
++    try {
++        const configPath = getConfigPath();
++        if (fs.existsSync(configPath)) {
++            fs.unlinkSync(configPath);
++            console.log("DEV OVERRIDE: local hardware config file deleted.");  
++        }
++    } catch(e) {}
++});
++
++// DEV: Dynamically change dev override settings
++ipcMain.on('dev-update-settings', (event, newDevSettings) => {
++    if (!devModeActive) return;
++    devConfig = { ...devConfig, ...newDevSettings };
++    console.log("[DEV] Overrides updated: ", devConfig);
++});
++
++// DEV: Temporary Instance Builder
++ipcMain.on('dev-create-instance', (event, data) => {
++    if (!devModeActive) return;
++    const { id, version, loader } = data;
++    
++    const manifestsDir = path.join(app.getAppPath(), 'manifests');
++    if (!fs.existsSync(manifestsDir)) {
++        fs.mkdirSync(manifestsDir, { recursive: true });
++    }
++
++    const testManifest = {
++        name: `[DEV] ${id}`,
++        minecraftVersion: version,
++        modLoader: loader,
++        description: `Auto-generated test instance using ${loader} on MC ${version}.`,
++        blacklist: [],
++        mods: []
++    };
++
++    const targetPath = path.join(manifestsDir, `${id}.json`);
++    fs.writeFileSync(targetPath, JSON.stringify(testManifest, null, 2));       
++    console.log(`[DEV] Injected manifest to ${targetPath}`);
++    
++    // Automatically trigger app to re-read the folder for the UI.
++    // Fetch manifests and parse them correctly
++    let modpacks = [];
++    if (fs.existsSync(manifestsDir)) {
++        try {
++            const files = fs.readdirSync(manifestsDir);
++            files.forEach(file => {
++                if (file.endsWith('.json')) {
++                    const content = fs.readFileSync(path.join(manifestsDir, file), 'utf8');
++                    try {
++                        const parsed = JSON.parse(content);
++                        parsed.id = file.replace('.json', ''); // simple ID    
++                        modpacks.push(parsed);
++                    } catch(jsonErr) {
++                        console.error('Failed to parse manifest json:', file, jsonErr);
++                    }
++                }
++            });
++        } catch(e) { console.error('Failed checking manifests folder', e); }   
++    }
++    event.sender.send('load-modpacks', modpacks);
++});
++
++// DEV: Purge Temporary Instances
++ipcMain.on('dev-delete-instances', (event) => {
++    if (!devModeActive) return;
++    const manifestsDir = path.join(app.getAppPath(), 'manifests');
++    if (fs.existsSync(manifestsDir)) {
++        const files = fs.readdirSync(manifestsDir);
++        files.forEach(file => {
++            if (file.endsWith('.json')) {
++                const targetPath = path.join(manifestsDir, file);
++                try {
++                    const content = fs.readFileSync(targetPath, 'utf8');       
++                    const parsed = JSON.parse(content);
++                    if (parsed.name && parsed.name.startsWith('[DEV]')) {      
++                        fs.unlinkSync(targetPath);
++                        console.log(`[DEV] Deleted temp instance: ${file}`);   
++                    }
++                } catch(e) {}
++            }
++        });
++        
++        // Re-read and update UI correctly
++        let modpacks = [];
++        const updatedFiles = fs.readdirSync(manifestsDir);
++        updatedFiles.forEach(file => {
++            if (file.endsWith('.json')) {
++                const content = fs.readFileSync(path.join(manifestsDir, file), 'utf8');
++                try {
++                    const parsed = JSON.parse(content);
++                    parsed.id = file.replace('.json', '');
++                    modpacks.push(parsed);
++                } catch(jsonErr) {}
++            }
++        });
++        event.sender.send('load-modpacks', modpacks);
++    }
++});
+
+ ipcMain.on('kill-game', () => {
+     console.log("Launcher instructed engine to terminate game process.");      
+@@ -318,8 +636,8 @@ ipcMain.on('launch-game', async (event, configRequest) => { 
+     const crypto = require('crypto');
+     const https = require('https');
+     const http = require('http');
+-    const { Client } = require('minecraft-launcher-core');
+-    const { fabric } = require('tomate-loaders');
++    const { Client, Authenticator } = require('minecraft-launcher-core');      
++    const loaders = require('tomate-loaders');
+
+     // appData inherently points to C:\Users\User\AppData\Roaming on Windows   
+     const launcher = new Client();
+@@ -340,7 +658,10 @@ ipcMain.on('launch-game', async (event, configRequest) => {
+         return new Promise((resolve, reject) => {
+             const file = fs.createWriteStream(dest);
+             const client = url.startsWith('https') ? https : http;
+-            client.get(url, (response) => {
++
++            // Adding { rejectUnauthorized: false } bypasses strict SSL checks 
++            // which helps homelab setups with self-signed certs pass the download phase!
++            client.get(url, { rejectUnauthorized: false }, (response) => {     
+                 if (response.statusCode === 301 || response.statusCode === 302) {
+                     return downloadFile(response.headers.location, dest).then(resolve).catch(reject);
+                 }
+@@ -363,30 +684,176 @@ ipcMain.on('launch-game', async (event, configRequest) => {
+     let manifest = { minecraftVersion: '1.20.4' }; // Fallback offline configuration
+
+     try {
+-        mainWindow.webContents.send('update-status', 'Loading Modpack Manifest...');
++        mainWindow.webContents.send('update-status', 'Fetching Manifest from Server...');
++        const fetch = (await import('node-fetch')).default;
++        
++        let targetManifestUrl = `http://localhost:8080/manifests/files/${instanceName}.json`;
+
+-        const manifestFilePath = path.join(app.getAppPath(), 'manifests', `${instanceName}.json`);
+-        if (fs.existsSync(manifestFilePath)) {
+-            const rawData = fs.readFileSync(manifestFilePath, 'utf8');
+-            manifest = JSON.parse(rawData);
+-            mainWindow.webContents.send('update-status', `Loaded Manifest: ${manifest.minecraftVersion}`);
++        // If it's a dev instance created locally, it might only exist in the local folder
++        // Handle Dev Backdoor Temp instances vs Remote instances correctly    
++        if (instanceName.startsWith('[DEV]')) {
++             const localPath = path.join(app.getAppPath(), 'manifests', `${instanceName}.json`);
++             if (fs.existsSync(localPath)) {
++                 manifest = JSON.parse(fs.readFileSync(localPath, 'utf8'));    
++                 mainWindow.webContents.send('update-status', `Loaded Native Dev Manifest: ${manifest.minecraftVersion}`);
++             } else {
++                 throw new Error("Dev manifest not found locally.");
++             }
+         } else {
+-            throw new Error(`Manifest not found at ${manifestFilePath}`);      
++             const response = await fetch(targetManifestUrl);
++             if (!response.ok) throw new Error(`Server returned ${response.status} for manifest`);
++             manifest = await response.json();
++             mainWindow.webContents.send('update-status', `Loaded Remote Manifest: ${manifest.minecraftVersion}`);
+         }
+
+     } catch (err) {
+-        console.warn("Failed to load local manifest. Entering fallback.", err.message);
++        console.warn("Failed to load manifest. Entering fallback.", err.message);
+         mainWindow.webContents.send('update-status', 'Manifest Load Failed - Fallback Version');
+
+         // Artificial delay so the UI shows the "warning" message before jumping into the engine
+         await new Promise(r => setTimeout(r, 2000));
+     }
+
+-        // Engine Launch happens strictly outside the Try/Catch block
++    // --- MINEVANCED SYNC ENGINE (Mod Downloading) ---
++    try {
++        // Sync Legacy Mods Array
++        if (manifest.mods && Array.isArray(manifest.mods)) {
++            const modsPath = path.join(rootPath, 'mods');
++            if (!fs.existsSync(modsPath)) {
++                fs.mkdirSync(modsPath, { recursive: true });
++            }
++
++            let current = 0;
++            const totalMods = manifest.mods.length;
++
++            for (const mod of manifest.mods) {
++                current++;
++                const modFilename = `${mod.name}-${mod.version || 'latest'}.jar`.replace(/[^a-zA-Z0-9.-]/g, '_');
++                const targetFilePath = path.join(modsPath, modFilename);       
++
++                let needsDownload = true;
++                if (fs.existsSync(targetFilePath)) {
++                    if (mod.hash) {
++                        const localHash = await getFileHash(targetFilePath);   
++                        if (localHash === mod.hash) {
++                            needsDownload = false;
++                        }
++                    } else {
++                        // Without hash, assume correct if versioned file exists
++                        needsDownload = false;
++                    }
++                }
++
++                if (needsDownload && mod.downloadUrl) {
++                    mainWindow.webContents.send('update-status', `Syncing Mod ${current}/${totalMods}: ${mod.name}`);
++                    console.log(`[SYNC] Downloading ${mod.name} from ${mod.downloadUrl}...`);
++                    await downloadFile(mod.downloadUrl, targetFilePath).catch(e => {
++                        console.error(`[SYNC ERROR] Failed to download ${mod.name}:`, e);
++                    });
++                }
++
++                // Update UI bar roughly
++                const progressPercent = Math.round((current / totalMods) * 100);
++                mainWindow.webContents.send('update-status', `Syncing Mods: ${progressPercent}%`);
++            }
++        }
++
++        // Sync General Generic Files (Configs, Resourcepacks, extra Mods, etc.)
++        if (manifest.files && Array.isArray(manifest.files)) {
++            let current = 0;
++            const totalFiles = manifest.files.length;
++
++            for (const fileObj of manifest.files) {
++                current++;
++                if (!fileObj.path) continue; // Skip invalid entries
++
++                // Secure path target - ensure it stays inside the instance folder
++                const targetFilePath = path.join(rootPath, fileObj.path);      
++                if (!targetFilePath.startsWith(rootPath)) {
++                    console.warn(`[SYNC WARNING] File path ${fileObj.path} tried to escape instance folder. Skipping.`);
++                    continue;
++                }
++
++                const fileDir = path.dirname(targetFilePath);
++                if (!fs.existsSync(fileDir)) {
++                    fs.mkdirSync(fileDir, { recursive: true });
++                }
++
++                let needsDownload = true;
++                if (fs.existsSync(targetFilePath) && !fileObj.extract) {       
++                    if (fileObj.hash) {
++                        const localHash = await getFileHash(targetFilePath);   
++                        if (localHash === fileObj.hash) {
++                            needsDownload = false;
++                        }
++                    } else {
++                        // Without hash, default to skip if exists
++                        needsDownload = false;
++                    }
++                }
++
++                if (needsDownload && fileObj.downloadUrl) {
++                    mainWindow.webContents.send('update-status', `Syncing File ${current}/${totalFiles}: ${path.basename(fileObj.path)}`);
++                    console.log(`[SYNC] Downloading ${fileObj.extract ? 'and extracting ' : ''}file ${fileObj.path} from ${fileObj.downloadUrl}...`);
++                    await downloadFile(fileObj.downloadUrl, targetFilePath).catch(e => {
++                        console.error(`[SYNC ERROR] Failed to download ${fileObj.path}:`, e);
++                    });
++
++                    if (fileObj.extract && fs.existsSync(targetFilePath)) {    
++                        try {
++                            const extract = require('extract-zip');
++                            const targetExtractDir = fileObj.path ? path.join(rootPath, fileObj.path) : rootPath;
++                            mainWindow.webContents.send('update-status', `Extracting ${path.basename(fileObj.path)}...`);
++                            console.log(`[SYNC] Extracting ${targetFilePath} to ${targetExtractDir}...`);
++                            await extract(targetFilePath, { dir: targetExtractDir });
++                            // Optional: clean up the downloaded zip file      
++                            fs.unlinkSync(targetFilePath);
++                        } catch (extErr) {
++                            console.error(`[SYNC ERROR] Failed to extract ${fileObj.path}:`, extErr);
++                        }
++                    }
++                }
++
++                const progressPercent = Math.round((current / totalFiles) * 100);
++                mainWindow.webContents.send('update-status', `Syncing Assets: ${progressPercent}%`);
++            }
++        }
++    } catch (syncError) {
++        console.error("Sync Engine Error:", syncError);
++        mainWindow.webContents.send('update-status', 'Warning: Sync Engine encountered an error.');
++        await new Promise(r => setTimeout(r, 2000));
++    }
++
++    // Engine Launch happens strictly outside the Try/Catch block
+     try {
+-        mainWindow.webContents.send('update-status', `Initializing ${manifest.minecraftVersion} Engine...`);
+-        const launchConfig = await fabric.getMCLCLaunchConfig({
+-            gameVersion: manifest.minecraftVersion || '1.20.4',
++        const loaderType = (manifest.modLoader || 'vanilla').toLowerCase();    
++        let targetLoader = loaders[loaderType];
++        
++        if (!targetLoader) {
++            console.warn(`Loader '${loaderType}' not found in tomate-loaders. Falling back to vanilla.`);
++            targetLoader = loaders.vanilla;
++        }
++
++        let resolvedVersion = manifest.minecraftVersion || '1.20.4';
++        
++        // Dynamically resolve "latest" via Mojang's API
++        if (resolvedVersion === 'latest') {
++            mainWindow.webContents.send('update-status', 'Resolving latest version...');
++            const pFetch = (await import('node-fetch')).default;
++            const versionRes = await pFetch('https://launchermeta.mojang.com/mc/game/version_manifest.json');
++            if (versionRes.ok) {
++                const versionData = await versionRes.json();
++                resolvedVersion = versionData.latest.release;
++                console.log(`Resolved "latest" to ${resolvedVersion}`);        
++            } else {
++                console.warn('Failed to fetch Mojang version manifest, falling back to 1.21.1');
++                resolvedVersion = '1.21.1';
++            }
++        }
++
++        mainWindow.webContents.send('update-status', `Initializing ${resolvedVersion} Engine...`);
++        const launchConfig = await targetLoader.getMCLCLaunchConfig({
++            gameVersion: resolvedVersion,
+             rootPath: rootPath
+         });
+
