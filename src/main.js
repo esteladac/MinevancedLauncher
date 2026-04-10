@@ -300,7 +300,30 @@ ipcMain.on('request-modpacks', async (event) => {
             }
         }
 
-        const filteredPacks = onlinePacks.filter(p => !p.hidden);
+        for (const folderName of ['manifests', 'modpacks']) {
+              const localUserManifestsDir = path.join(app.getAppPath(), folderName);
+              if (fs.existsSync(localUserManifestsDir)) {
+                  try {
+                      const userFiles = fs.readdirSync(localUserManifestsDir);
+                      for (const file of userFiles) {
+                          if (file.endsWith('.json') && !file.startsWith('INVITE_')) {
+                              try {
+                                  const fcontent = fs.readFileSync(path.join(localUserManifestsDir, file), 'utf8');
+                                  const parsed = JSON.parse(fcontent);
+                                  if (!parsed.id) parsed.id = file.replace('.json', '');
+                                  if (!onlinePacks.find(p => p.id === parsed.id) && !parsed.name.startsWith('[DEV]')) {
+                                      parsed.isOfficial = false;
+                                      parsed.isBuiltin = false;
+                                      onlinePacks.push(parsed);
+                                  }
+                              } catch (err) {}
+                          }
+                      }
+                  } catch (err) {}
+              }
+          }
+
+          const filteredPacks = onlinePacks.filter(p => !p.hidden);
         event.sender.send('load-modpacks', filteredPacks);
     } catch (err) {
         console.error('Failed formatting packs:', err);

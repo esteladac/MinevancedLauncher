@@ -43,5 +43,7 @@
   "alerts.ok": "OK",
   "alerts.confirm": "Confirm",
   "alerts.delete": "Delete",
-  "alerts.cancel": "Cancel"
+  "alerts.cancel": "Cancel",
+  "settings.snapshots": "Enable Snapshots",
+  "settings.snapshotsDesc": "Show experimental snapshot versions in the Vanilla launcher."
 }

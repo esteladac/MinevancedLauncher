@@ -43,5 +43,7 @@
   "alerts.ok": "OK",
   "alerts.confirm": "Confirmer",
   "alerts.delete": "Supprimer",
-  "alerts.cancel": "Annuler"
+  "alerts.cancel": "Annuler",
+  "settings.snapshots": "Activer les Snapshots",
+  "settings.snapshotsDesc": "Afficher les versions de développement (snapshots) dans le lanceur Vanilla."
 }
