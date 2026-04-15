@@ -717,7 +717,7 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             const client = url.startsWith('https') ? https : http;
 
             // Adding { rejectUnauthorized: false } bypasses strict SSL checks
-            // which helps homelab setups with self-signed certs pass the download phase!
+            // which helps private setups with self-signed certs pass the download phase!
             client.get(url, { rejectUnauthorized: false }, (response) => {
                 if (response.statusCode === 301 || response.statusCode === 302) {
                     return downloadFile(response.headers.location, dest).then(resolve).catch(reject);
@@ -972,10 +972,14 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             if (e.type && progressPhases[e.type.toLowerCase()]) {
                 const phase = progressPhases[e.type.toLowerCase()];
                 const calculated = phase.start + (e.task / e.total) * (phase.end - phase.start);
-                percent = Math.max(fallbackPercent, calculated);
-                fallbackPercent = percent; // Guarantee no backward glitch
+                
+                // Protect against NaN if e.task or e.total is malformed / zero
+                if (!isNaN(calculated)) {
+                    percent = Math.max(fallbackPercent, calculated);
+                    fallbackPercent = percent; // Guarantee no backward glitch
+                }
             }
-            
+
             // Re-capitalize the first letter for UI cleanliness
             const displayType = e.type ? e.type.charAt(0).toUpperCase() + e.type.slice(1) : 'Engine';
             mainWindow.webContents.send('update-status', `Checking ${displayType}: ${Math.round(percent)}%`);
@@ -983,8 +987,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
 
         launcher.on('download-status', (e) => {
             const shortName = e.name ? (e.name.length > 50 ? '...' + e.name.slice(-50) : e.name) : 'files...';
-            // Send what file is currently downloading, without sending a percentage that would confuse the UI bar
-            mainWindow.webContents.send('update-status', `Downloading: ${shortName}`);
+            // Also append the overall engine progress so the UI bar stays accurate and moving
+            mainWindow.webContents.send('update-status', `Downloading: ${shortName} ${Math.round(fallbackPercent)}%`);
         });
 
         launcher.on('data', (e) => {

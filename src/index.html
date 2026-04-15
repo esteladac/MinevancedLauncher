@@ -30,12 +30,9 @@
                     <div class="nav-btn" data-target="view-modpacks">
                         <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                     </div>
-                    <div class="nav-btn" data-target="view-settings">
-                        <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                    </div>
                 </div>
-                <div class="nav-btn bottom-btn" id="btn-exit">
-                    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <div class="nav-btn bottom-btn" data-target="view-settings">
+                    <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </div>
             </nav>
 
@@ -45,8 +42,8 @@
                     <div class="status-module">
                         <svg class="status-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                         <div class="status-text">
-                            <small>Players online:</small>
-                            <strong>Offline</strong>
+                            <small data-translate="status.offline">Players online:</small>
+                            <strong data-translate="status.offline">Offline</strong>
                         </div>
                     </div>
 
@@ -54,7 +51,7 @@
                         <svg class="status-icon" viewBox="0 0 24 24" style="z-index: 2;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         <div class="status-text" style="z-index: 2;">
                             <small>Minevanced Sync</small>
-                            <strong id="dl-progress" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; display: inline-block;">Waiting for engine...</strong>
+                            <strong id="dl-progress" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; display: inline-block;" data-translate="status.waitingEngine">Waiting for engine...</strong>
                         </div>
                         <div style="position: absolute; bottom: 12px; left: 20px; right: 20px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
                             <div id="dl-progress-bar" style="height: 100%; width: 0%; background: var(--accent-purple); transition: width 0.3s ease; box-shadow: 0 0 8px var(--accent-purple);"></div>
@@ -63,8 +60,8 @@
 
                     <div class="status-module profile-module" id="top-right-profile-btn" style="cursor: pointer;">
                         <div class="status-text" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
-                            <strong>Guest</strong>
-                            <small>Not Logged In</small>
+                            <strong data-translate="status.guest">Guest</strong>
+                            <small data-translate="status.notLoggedIn">Not Logged In</small>
                         </div>
                         <img src="https://minotar.net/helm/Steve/40.png" alt="Avatar" class="avatar">
                     </div>
@@ -74,19 +71,19 @@
                     
                     <div id="view-home" class="view active">
                         <div class="hero-section" style="position: relative; z-index: 2;">
-                            <h1 class="modpack-title">MINEVANCED</h1>
+                            <h1 class="modpack-title" data-translate="home.title">MINEVANCED</h1>
                             
                             <div id="version-selector-container" class="version-selectors" style="margin-top: -10px; margin-bottom: 20px; display: none;">
                                 <!-- Vanilla version selector -->
                                 <div id="vanilla-selector" style="display: none; align-items: center; gap: 10px; position: relative;">
-                                    <span style="font-size: 13px; color: var(--text-dim); text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Minecraft Version:</span>
+                                    <span style="font-size: 13px; color: var(--text-dim); text-shadow: 0 2px 4px rgba(0,0,0,0.5);" data-translate="home.mcVersion">Minecraft Version:</span>
                                     <div class="custom-dropdown" id="vanilla-dropdown">
                                         <div class="custom-dropdown-header">
-                                            <input type="text" id="vanilla-version-input" value="Latest" data-real-value="latest" placeholder="Search versions..." autocomplete="off">
+                                            <input type="text" id="vanilla-version-input" value="Latest" data-real-value="latest" placeholder="Search versions..." data-translate-placeholder="home.searchVersions" autocomplete="off">
                                             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0; pointer-events: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </div>
                                         <div class="custom-dropdown-list" id="vanilla-options">
-                                            <div class="custom-dropdown-item" data-value="latest">Latest Release</div>
+                                            <div class="custom-dropdown-item" data-value="latest" data-translate="home.latestRelease">Latest Release</div>
                                             <!-- Dynamically populated below with ALL release versions -->
                                         </div>
                                     </div>
@@ -94,41 +91,60 @@
                                 
                                 <!-- Minevanced version selector -->
                                 <div id="minevanced-selector" style="display: none; align-items: center; gap: 10px; position: relative;">
-                                    <span style="font-size: 13px; color: var(--text-dim); text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Modpack Profile:</span>
+                                    <span style="font-size: 13px; color: var(--text-dim); text-shadow: 0 2px 4px rgba(0,0,0,0.5);" data-translate="home.modpackProfile">Modpack Profile:</span>
                                     <div class="custom-dropdown" id="minevanced-dropdown">
                                         <div class="custom-dropdown-header" id="minevanced-dropdown-header">
-                                            <span id="minevanced-version-display" style="flex: 1;">Modded</span>
+                                            <span id="minevanced-version-display" style="flex: 1;" data-translate="home.modded">Modded</span>
                                             <input type="hidden" id="minevanced-version-select" value="modded">
                                             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0; pointer-events: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </div>
                                         <div class="custom-dropdown-list" id="minevanced-options">
-                                            <div class="custom-dropdown-item" data-value="modded">Modded</div>
-                                            <div class="custom-dropdown-item" data-value="optimized">Optimised</div>
+                                            <div class="custom-dropdown-item" data-value="modded" data-translate="home.modded">Modded</div>
+                                            <div class="custom-dropdown-item" data-value="optimized" data-translate="home.optimized">Optimised</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <p class="modpack-desc">A highly optimized vanilla survival experience on the latest version of Minecraft. Experience the game exactly how we designed it for our homelab.</p>
+                            <p class="modpack-desc" data-translate="home.heroDescModded">A highly optimized vanilla survival experience on the latest version of Minecraft. Experience the game exactly how we designed it.</p>
                             <div class="action-buttons">
-                                <button class="play-btn" id="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"></path></svg> PLAY</button>
+                                <button class="play-btn" id="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"></path></svg> <span data-translate="home.play">PLAY</span></button>
                             </div>
                         </div>
                         <footer class="bottom-bar">
-                            <button class="mod-list-btn"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> MOD LIST</button>
+                            <button class="mod-list-btn"><svg class="btn-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> <span data-translate="home.modList">MOD LIST</span></button>
                         </footer>
                     </div>
 
                     <div id="view-settings" class="view hidden">
                         <div class="settings-header">
-                            <h2>Launcher Settings</h2>
-                            <p>Configure your Minevanced experience.</p>
+                            <h2 data-translate="settings.title">Launcher Settings</h2>
+                            <p data-translate="settings.subtitle">Configure your Minevanced experience.</p>
                         </div>
                         <div class="settings-card">
                             <div class="setting-item">
                                 <div class="setting-info">
-                                    <h3>RAM Allocation</h3>
-                                    <p>How much memory to give Minecraft. Higher is better for heavy modpacks.</p>
+                                    <h3 data-translate="settings.language">Language</h3>
+                                    <p data-translate="settings.languageDesc">Choose the application language.</p>
+                                </div>
+                                <div class="setting-control" style="justify-content: flex-end;">
+                                    <div class="custom-dropdown" id="language-dropdown" style="width: 140px; text-align: left;">
+                                        <div class="custom-dropdown-header" id="language-dropdown-header">
+                                            <span id="language-display" style="flex: 1;">English</span>
+                                            <input type="hidden" id="language-select" value="en">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0; pointer-events: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </div>
+                                        <div class="custom-dropdown-list" id="language-options">
+                                            <div class="custom-dropdown-item" data-value="en">English</div>
+                                            <div class="custom-dropdown-item" data-value="fr">Français</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-translate="settings.ram">RAM Allocation</h3>
+                                    <p data-translate="settings.ramDesc">How much memory to give Minecraft. Higher is better for heavy modpacks.</p>
                                 </div>
                                 <div class="setting-control">
                                     <strong id="ram-value-display">4 GB</strong>
@@ -137,12 +153,24 @@
                             </div>
                             <div class="setting-item">
                                 <div class="setting-info">
-                                    <h3>Verbose Splash Mode</h3>
-                                    <p>Show technical debug logs during the launch and shutdown phases.</p>
+                                    <h3 data-translate="settings.verbose">Verbose Splash Mode</h3>
+                                    <p data-translate="settings.verboseDesc">Show technical debug logs during the launch and shutdown phases.</p>
                                 </div>
                                 <div class="setting-control" style="justify-content: flex-end;">
                                     <label class="theme-switch">
                                         <input type="checkbox" id="debug-splash-toggle">
+                                        <span class="switch-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-translate="settings.snapshots">Enable Snapshots</h3>
+                                    <p data-translate="settings.snapshotsDesc">Display experimental Minecraft snapshot versions in the Vanilla modpack selector.</p>
+                                </div>
+                                <div class="setting-control" style="justify-content: flex-end;">
+                                    <label class="theme-switch">
+                                        <input type="checkbox" id="snapshots-toggle">
                                         <span class="switch-slider"></span>
                                     </label>
                                 </div>
@@ -152,15 +180,15 @@
 
                     <div id="view-profile" class="view hidden">
                         <div class="settings-header">
-                            <h2>Authentication</h2>
-                            <p>Connect your account to play on the network.</p>
+                            <h2 data-translate="auth.title">Authentication</h2>
+                            <p data-translate="auth.subtitle">Connect your account to play on the network.</p>
                         </div>
                         
                         <div class="settings-card" id="profile-container">
                             <div class="setting-item">
                                 <div class="setting-info">
-                                    <h3>Premium Account</h3>
-                                    <p>Log in securely using the official Microsoft Xbox live API.</p>
+                                    <h3 data-translate="auth.premium">Premium Account</h3>
+                                    <p data-translate="auth.premiumDesc">Log in securely using the official Microsoft Xbox live API.</p>
                                 </div>
                                 <div class="setting-control" id="ms-control-area">
                                     <button class="play-btn" id="login-ms-btn" style="padding: 10px 20px; font-size: 12px; background: #00a4ef;">
@@ -170,17 +198,17 @@
                             </div>
                             <div class="setting-item">
                                 <div class="setting-info">
-                                    <h3>MinevancedAuth</h3>
-                                    <p>Secure offline connection. Only allowed on trusted local servers.</p>
+                                    <h3 data-translate="auth.minevanced">MinevancedAuth</h3>
+                                    <p data-translate="auth.minevancedDesc">Secure offline connection. Only allowed on trusted local servers.</p>
                                 </div>
                                 <div class="setting-control" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
                                     <div style="display: flex; gap: 5px;">
-                                        <input type="text" id="offline-user-input" placeholder="Username" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
-                                        <input type="password" id="offline-pass-input" placeholder="Password" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
+                                        <input type="text" id="offline-user-input" placeholder="Username" data-translate-placeholder="auth.username" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
+                                        <input type="password" id="offline-pass-input" placeholder="Password" data-translate-placeholder="auth.password" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
                                     </div>
                                     <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
-                                        <button class="play-btn" id="login-offline-btn" style="padding: 10px 20px; font-size: 12px; background: #333;">Login</button>
-                                        <button class="play-btn" id="register-offline-btn" style="padding: 10px 20px; font-size: 12px; background: var(--accent-purple);">Register</button>
+                                        <button class="play-btn" id="login-offline-btn" style="padding: 10px 20px; font-size: 12px; background: #333;" data-translate="auth.loginBtn">Login</button>
+                                        <button class="play-btn" id="register-offline-btn" style="padding: 10px 20px; font-size: 12px; background: var(--accent-purple);" data-translate="auth.registerBtn">Register</button>
                                     </div>
                                 </div>
                             </div>
@@ -196,12 +224,12 @@
                             </div>
                             <button id="btn-global-manage" class="play-btn" style="padding: 10px 15px; font-size: 12px; display: flex; align-items: center; gap: 5px; margin-right: 40px;" title="Manage Modpacks">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                <span id="btn-global-manage-text">Manage</span>
+                                <span id="btn-global-manage-text" data-translate="modpacks.manage">Manage</span>
                             </button>
                         </div>
                         
                         <div id="manage-controls-container" style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 0px solid rgba(255,255,255,0.05); overflow: hidden; opacity: 0; max-height: 0; margin-bottom: 0; padding: 0 10px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
-                            <input type="text" id="inline-invite-input" placeholder="Invite Code (e.g. VIP-PACK-2026)" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; font-size: 12px;">
+                            <input type="text" id="inline-invite-input" placeholder="Invite Code (e.g. VIP-PACK-2026)" data-translate-placeholder="modpacks.inviteCode" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; font-size: 12px;">
                             <button class="play-btn" id="inline-btn-add" style="padding: 10px 20px; font-size: 12px; display: flex; gap: 5px; align-items: center;">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                 Add Modpack
@@ -216,9 +244,9 @@
                     <!-- Installed Mods List View -->
                     <div id="view-mods" class="view hidden">
                         <div class="settings-header">
-                            <div class="back-btn back-from-mods"><svg class="btn-icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg> BACK</div>
-                            <h2 style="margin-top: 15px;">Installed Mods</h2>
-                            <p>Modifications currently managed by Minevanced Sync.</p>
+                            <div class="back-btn back-from-mods"><svg class="btn-icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg> <span data-translate="nav.back">BACK</span></div>
+                            <h2 style="margin-top: 15px;" data-translate="mods.title">Installed Mods</h2>
+                            <p data-translate="mods.description">Modifications currently managed by Minevanced Sync.</p>
                         </div>
                         
                         <div class="mod-grid" id="mod-list-container">
@@ -255,7 +283,7 @@
             <div id="onboarding-modal" class="modal-overlay hidden" style="z-index: 1500;">
                 <div class="modal-content" style="max-width: 450px; text-align: center;">
                     <h2 style="color: var(--accent-purple); margin-top: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px;">MINEVANCED</h2>
-                    <p style="color: var(--text-main); font-weight: 500; margin-bottom: 20px;">Welcome to the next generation of homelab modpacks.</p>
+                    <p style="color: var(--text-main); font-weight: 500; margin-bottom: 20px;" data-translate="onboarding.welcome">Welcome to the next generation of modpacks.</p>
                     
                     <div style="text-align: left; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
                         <ul style="color: var(--text-dim); font-size: 13px; line-height: 1.8; margin: 0; padding-left: 20px;">
@@ -346,7 +374,67 @@
 
     <script>
         const { ipcRenderer } = require('electron');
+        const fs = require('fs');
+        const path = require('path');
         
+        // --- LOCALIZATION ENGINE ---
+        let currentLanguageData = {};
+        
+        function applyTranslations() {
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (currentLanguageData[key]) {
+                    el.innerHTML = currentLanguageData[key];
+                }
+            });
+
+            document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-translate-placeholder');
+                if (currentLanguageData[key]) {
+                    el.setAttribute('placeholder', currentLanguageData[key]);
+                }
+            });
+        }
+        
+        function setLanguage(langCode) {
+            const langFile = path.join(__dirname, `lang_${langCode}.json`);
+            if (fs.existsSync(langFile)) {
+                try {
+                    currentLanguageData = JSON.parse(fs.readFileSync(langFile, 'utf-8'));
+                    applyTranslations();
+                } catch(e) {
+                    console.error("Failed to load language:", langCode, e);
+                }
+            } else if (langCode !== 'en') {
+                // fallback to English if not found
+                setLanguage('en');
+            }
+        }
+
+        // Initialize the custom language select dropdown manually with saving hook
+        document.querySelectorAll('#language-options .custom-dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const newLang = item.getAttribute('data-value');
+                document.getElementById('language-select').value = newLang;
+                document.getElementById('language-display').innerText = item.innerText;
+                setLanguage(newLang);
+                ipcRenderer.send('save-config', { language: newLang });
+                document.getElementById('language-options').classList.remove('show');
+            });
+        });
+        
+        document.getElementById('language-dropdown-header').addEventListener('click', (e) => {
+            document.getElementById('language-options').classList.toggle('show');
+            e.stopPropagation();
+        });
+        
+        // Hide dropping when click outside
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('language-dropdown').contains(e.target)) {
+                document.getElementById('language-options').classList.remove('show');
+            }
+        });
+
         // --- CUSTOM ALERT LOGIC ---
         function showCustomAlert(title, message) {
             document.getElementById('custom-alert-title').innerText = title;
@@ -395,7 +483,6 @@
         });
 
         document.getElementById('btn-close').addEventListener('click', () => ipcRenderer.send('window-close'));
-        document.getElementById('btn-exit').addEventListener('click', () => ipcRenderer.send('window-close'));
 
         // --- DEVELOPER BACKDOOR LOGIC ---
         let devModeUnlocked = false;
@@ -531,15 +618,29 @@
         const ramSlider = document.getElementById('ram-slider');
         const ramDisplay = document.getElementById('ram-value-display');
         const debugToggle = document.getElementById('debug-splash-toggle');
-          const snapshotsToggle = document.getElementById('snapshots-toggle');
+        const snapshotsToggle = document.getElementById('snapshots-toggle');
         
         // Request saved config on load
         let initialConfigLoad = null;
         ipcRenderer.send('request-config');
-        ipcRenderer.on('load-config', (event, config) => {            if (config.firstRun !== false) {
+        ipcRenderer.on('load-config', (event, config) => {
+            if (config.firstRun !== false) {
                 document.getElementById('onboarding-modal').classList.remove('hidden');
-                ipcRenderer.send('save-config', { firstRun: false });
+                
+                // Get system default language
+                const sysLang = navigator.language.split('-')[0]; // "en-US" -> "en", "fr-FR" -> "fr"
+                const defaultLang = ['en', 'fr'].includes(sysLang) ? sysLang : 'en';
+                
+                config.language = defaultLang;
+                ipcRenderer.send('save-config', { firstRun: false, language: defaultLang });
             }
+
+            // Apply selected language (defaults to 'en' safely if not set yet on existing old configs)
+            const activeLang = config.language || 'en';
+            document.getElementById('language-select').value = activeLang;
+            document.getElementById('language-display').innerText = activeLang === 'fr' ? 'Français' : 'English';
+            setLanguage(activeLang);
+
             if (config.ram) {
                 ramSlider.value = config.ram;
                 ramDisplay.innerText = `${config.ram} GB`;
@@ -547,6 +648,17 @@
             if (config.debugSplash !== undefined) {
                 debugToggle.checked = config.debugSplash;
             }
+            if (config.showSnapshots !== undefined) {
+                snapshotsToggle.checked = config.showSnapshots;
+            }
+            
+            // Apply snapshot visibility rule right away
+            if (snapshotsToggle.checked) {
+                document.getElementById('vanilla-options').classList.remove('hide-snapshots');
+            } else {
+                document.getElementById('vanilla-options').classList.add('hide-snapshots');
+            }
+
             if (config.authProfile && config.authProfile.name) {
                 updateProfileUI(config.authProfile.name, config.authType);
             }
@@ -558,11 +670,29 @@
         ramSlider.addEventListener('input', (e) => {
             const val = e.target.value;
             ramDisplay.innerText = `${val} GB`;
-            ipcRenderer.send('save-config', { ram: val, debugSplash: debugToggle.checked });
+            ipcRenderer.send('save-config', { ram: val, debugSplash: debugToggle.checked, showSnapshots: snapshotsToggle.checked });
         });
 
         debugToggle.addEventListener('change', (e) => {
-            ipcRenderer.send('save-config', { ram: ramSlider.value, debugSplash: e.target.checked });
+            ipcRenderer.send('save-config', { ram: ramSlider.value, debugSplash: e.target.checked, showSnapshots: snapshotsToggle.checked });
+        });
+
+        snapshotsToggle.addEventListener('change', (e) => {
+            ipcRenderer.send('save-config', { ram: ramSlider.value, debugSplash: debugToggle.checked, showSnapshots: e.target.checked });
+            if (e.target.checked) {
+                document.getElementById('vanilla-options').classList.remove('hide-snapshots');
+            } else {
+                document.getElementById('vanilla-options').classList.add('hide-snapshots');
+                
+                // If they had a snapshot selected and disabled them, revert back to latest
+                const input = document.getElementById('vanilla-version-input');
+                if (input.value !== 'Latest') {
+                    // We don't have exactly versions list mapped instantly here in the listener easily,
+                    // but we can just reset if we want. For now, doing it simply:
+                    input.value = 'Latest';
+                    input.dataset.realValue = 'latest';
+                }
+            }
         });
 
         // --- AUTHENTICATION LOGIC ---
@@ -710,7 +840,8 @@
 
         ipcRenderer.on('game-closed', () => {
             const btn = document.getElementById('play-btn');
-            btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"></path></svg> PLAY`;
+            const playText = currentLanguageData['home.play'] || 'PLAY';
+            btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"></path></svg> <span data-translate="home.play">${playText}</span>`;
             btn.style.background = "var(--accent-purple)";
             btn.style.opacity = "1";
             btn.style.pointerEvents = "auto";
@@ -732,7 +863,8 @@
             container.innerHTML = '';
             
             if (mods.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-dim); text-align: center; grid-column: 1 / -1; padding-top: 40px;">No mods detected yet. Run the game to sync.</p>';
+                const noModsText = currentLanguageData['mods.noMods'] || 'No mods detected yet. Run the game to sync.';
+                container.innerHTML = `<p style="color: var(--text-dim); text-align: center; grid-column: 1 / -1; padding-top: 40px;" data-translate="mods.noMods">${noModsText}</p>`;
             } else {
                 mods.forEach(mod => {
                     const card = document.createElement('div');
@@ -847,9 +979,16 @@
                     card.className = 'modpack-card';
 
                     const isOfficial = mp.isOfficial ? true : false;
+                    const reinstallText = currentLanguageData['modpacks.reinstall'] || 'Reinstall';
+                    const deleteText = currentLanguageData['modpacks.delete'] || 'Delete';
+                    
                     const manageBtn = isOfficial 
-                        ? `<button class="play-btn modpack-reinstall-btn modpack-manage-action" data-id="${mp.id}" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 11px; padding: 8px 0; overflow: hidden; opacity: 0; max-width: 0; border-width: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap;">Reinstall</button>`
-                        : `<button class="play-btn modpack-delete-btn modpack-manage-action" data-id="${mp.id}" style="background: rgba(220,53,69,0.8); border: 1px solid rgba(220,53,69,1); font-size: 11px; padding: 8px 0; overflow: hidden; opacity: 0; max-width: 0; border-width: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap;">Delete</button>`;
+                        ? `<button class="play-btn modpack-reinstall-btn modpack-manage-action" data-id="${mp.id}" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); font-size: 11px; padding: 8px 0; overflow: hidden; opacity: 0; max-width: 0; border-width: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap;"><span data-translate="modpacks.reinstall">${reinstallText}</span></button>`
+                        : `<button class="play-btn modpack-delete-btn modpack-manage-action" data-id="${mp.id}" style="background: rgba(220,53,69,0.8); border: 1px solid rgba(220,53,69,1); font-size: 11px; padding: 8px 0; overflow: hidden; opacity: 0; max-width: 0; border-width: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap;"><span data-translate="modpacks.delete">${deleteText}</span></button>`;
+
+                    const versionPrefixInfo = currentLanguageData['modpacks.versionPrefix'] || 'Version';
+                    const modpackDescInfo = mp.description || (currentLanguageData['modpacks.customModpack'] || 'Custom Modpack.');
+                    const selectBtnInfo = currentLanguageData['modpacks.select'] || 'Select';
 
                     card.innerHTML = `
                         <div class="modpack-card-bg" style="background-image: url('${mp.coverImage || 'https://launcher.mojang.com/api/launcher-ui/images/grass.png'}');"></div>
@@ -857,11 +996,11 @@
                         <div class="modpack-card-content">
                             <div class="modpack-card-info modpack-info-transition" style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-right: 20px;">
                                 <h3 style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">${mp.name}</h3>
-                                <p style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">Version ${mp.minecraftVersion} • ${mp.description || 'Custom Modpack'}</p>
+                                <p style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);"><span data-translate="modpacks.versionPrefix">${versionPrefixInfo}</span> ${mp.minecraftVersion} • ${modpackDescInfo}</p>
                             </div>
                             <div class="modpack-card-actions" style="display: flex; gap: 8px;">
                                 ${manageBtn}
-                                <button class="play-btn modpack-action-btn" data-id="${mp.id}" data-name="${mp.name}" data-loader="${mp.modLoader || 'vanilla'}" data-cover="${mp.coverImage || 'https://launcher.mojang.com/api/launcher-ui/images/grass.png'}" data-desc="${mp.description || 'Custom modpack.'}" style="flex: 1; transition: flex-grow 0.3s cubic-bezier(0.4, 0, 0.2, 1);">Select</button>
+                                <button class="play-btn modpack-action-btn" data-id="${mp.id}" data-name="${mp.name}" data-loader="${mp.modLoader || 'vanilla'}" data-cover="${mp.coverImage || 'https://launcher.mojang.com/api/launcher-ui/images/grass.png'}" data-desc="${modpackDescInfo}" style="flex: 1; transition: flex-grow 0.3s cubic-bezier(0.4, 0, 0.2, 1);"><span data-translate="modpacks.select">${selectBtnInfo}</span></button>
                             </div>
                         </div>
                     `;
@@ -879,14 +1018,16 @@
                         const descText = e.target.getAttribute('data-desc');
                         
                         // Reset all buttons to 'Select'
+                        const selectText = currentLanguageData['modpacks.select'] || 'Select';
                         buttons.forEach(b => {
-                            b.innerText = 'Select';
+                            b.innerHTML = `<span data-translate="modpacks.select">${selectText}</span>`;
                             b.style.background = 'var(--accent-purple)';
                         });
                         
                         // Tell user they selected it
-                        e.target.innerText = 'Selected';
-                        e.target.style.background = '#28a745'; // Green positive feedback
+                        const selectedText = currentLanguageData['modpacks.selected'] || 'Selected';
+                        e.currentTarget.innerHTML = `<span data-translate="modpacks.selected">${selectedText}</span>`;
+                        e.currentTarget.style.background = '#28a745'; // Green positive feedback
                         
                         // Set loading state for smooth background crossfade
                         const homeBg = document.getElementById('home-bg-image');
@@ -894,7 +1035,7 @@
                         
                         // Switch home display info to match selection
                         document.querySelector('.modpack-title').innerText = targetName.toUpperCase();
-                        document.querySelector('.modpack-desc').innerText = descText;
+                        // document.querySelector('.modpack-desc').innerText = descText;
                         
                         // Wait for image to actually download over the web before displaying it
                         const img = new Image();
@@ -914,19 +1055,27 @@
                         const minevancedSelector = document.getElementById('minevanced-selector');
                         
                         if (targetId === 'vanilla') {
-                            vsContainer.style.display = 'block';
-                            vanillaSelector.style.display = 'flex';
-                            minevancedSelector.style.display = 'none';
-                        } else if (targetId === 'minevanced') {
-                            vsContainer.style.display = 'block';
-                            minevancedSelector.style.display = 'flex';
-                            vanillaSelector.style.display = 'none';
-                            // Ensure "Modded" is the default when switching to Minevanced pack
-                            document.getElementById('minevanced-version-select').value = 'modded';
-                            document.getElementById('minevanced-version-display').innerText = 'Modded';
-                        } else {
-                            vsContainer.style.display = 'none';
-                        }
+                              vsContainer.style.display = 'block';
+                              vanillaSelector.style.display = 'flex';
+                              minevancedSelector.style.display = 'none';        
+                              document.querySelector('.modpack-desc').removeAttribute('data-translate');
+                              document.querySelector('.modpack-desc').innerText = descText;
+                          } else if (targetId === 'minevanced') {
+                              vsContainer.style.display = 'block';
+                              minevancedSelector.style.display = 'flex';        
+                              vanillaSelector.style.display = 'none';
+                              // Ensure "Modded" is the default when switching to Minevanced pack
+                              document.getElementById('minevanced-version-select').value = 'modded';
+                              if (document.getElementById('minevanced-version-display')) {
+                                  document.getElementById('minevanced-version-display').innerText = currentLanguageData['home.modded'] || 'Modded';
+                              }
+                              document.querySelector('.modpack-desc').setAttribute('data-translate', 'home.heroDescModded');
+                              document.querySelector('.modpack-desc').innerText = currentLanguageData['home.heroDescModded'] || '';
+                          } else {
+                              vsContainer.style.display = 'none';
+                              document.querySelector('.modpack-desc').removeAttribute('data-translate');
+                              document.querySelector('.modpack-desc').innerText = descText;
+                          }
                         // Hide the Mod List button if it's a Vanilla instance
                         if (loaderType === 'vanilla' || loaderType === 'none') {
                             document.querySelector('.mod-list-btn').style.display = 'none';
@@ -1045,6 +1194,7 @@
                         if (displayId && hiddenInputId) {
                             document.getElementById(displayId).innerText = text;
                             document.getElementById(hiddenInputId).value = val;
+                              document.getElementById(hiddenInputId).dispatchEvent(new Event("change"));
                         }
                         
                         list.classList.remove('show');
@@ -1099,6 +1249,19 @@
 
             // Initialize the Minevanced dropdown synchronously
             setupDropdown('minevanced-dropdown', null, 'minevanced-options', 'minevanced-version-display', 'minevanced-version-select');
+
+              const mvSelect = document.getElementById('minevanced-version-select');
+              if (mvSelect) {
+                  mvSelect.addEventListener('change', (e) => {
+                      const val = e.target.value;
+                      const descEl = document.querySelector('.modpack-desc');
+                      if (descEl) {
+                          const key = val === 'modded' ? 'home.heroDescModded' : 'home.heroDescOptimized';
+                          descEl.setAttribute('data-translate', key);
+                          descEl.innerText = currentLanguageData[key] || '';
+                      }
+                  });
+              }
         });
     </script>
 </body>

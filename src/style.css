@@ -13,6 +13,13 @@ body {
     color: var(--text-main);
     background-color: transparent;
     overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+input, textarea {
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 .window-wrapper {
@@ -108,6 +115,9 @@ body.minimizing .window-wrapper {
     flex-direction: column;
     gap: 20px;
     width: 100%;
+    flex: 1;
+    justify-content: center;
+    transform: translateY(-35px);
 }
 
 .nav-btn {
@@ -551,3 +561,4 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px
     background: var(--accent-purple);
     color: white;
 }
+.hide-snapshots .version-snapshot { display: none !important; }
