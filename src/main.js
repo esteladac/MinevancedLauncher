@@ -38,6 +38,398 @@ function saveConfig(newConfig) {
     } catch(e) { console.error("Error saving config:", e); }
 }
 
+function getLauncherDataPath() {
+    return path.join(app.getPath('appData'), 'minevanced_launcher');
+}
+
+// --- PORTABLE JAVA MANAGER ---
+function getRequiredJavaVersion(minecraftVersion) {
+    // Parse MC version to semantic version for comparison
+    const parts = minecraftVersion.split('.');
+    const major = parseInt(parts[0]) || 0;
+    const minor = parseInt(parts[1]) || 0;
+
+    // Newer versions may use non-1.x numbering (e.g. 26.x) and require newer Java.
+    if (major >= 26) return '25';
+    if (major >= 24) return '21';
+    
+    // Minecraft version → Java version mapping
+    if (major > 1 || (major === 1 && minor >= 21)) return '21'; // 1.21+
+    if (major === 1 && minor >= 20 && parseInt(parts[2] || 0) >= 5) return '21'; // 1.20.5+
+    if (major === 1 && minor >= 18) return '17'; // 1.18-1.20.4
+    if (major === 1 && minor === 17) return '16'; // 1.17
+    return '8'; // 1.16 and earlier
+}
+
+async function getJavaPortable(minecraftVersion, dbgFunc) {
+    const javaVersion = getRequiredJavaVersion(minecraftVersion);
+    const javaDir = path.join(getLauncherDataPath(), 'java', `jdk-${javaVersion}`);
+    const javawPath = path.join(javaDir, 'bin', 'javaw.exe');
+    const javaExePath = path.join(javaDir, 'bin', 'java.exe');
+    const existingJavaPath = fs.existsSync(javawPath) ? javawPath : (fs.existsSync(javaExePath) ? javaExePath : null);
+    
+    dbgFunc && dbgFunc('java portable check', {
+        minecraftVersion,
+        javaVersion,
+        javawPath,
+        javaExePath,
+        existingJavaPath,
+        javawExists: fs.existsSync(javawPath),
+        javaExeExists: fs.existsSync(javaExePath)
+    });
+    
+    if (existingJavaPath) {
+        return existingJavaPath; // Already present
+    }
+    
+    dbgFunc && dbgFunc('java portable missing, initiating download', { javaVersion });
+    
+    // Determine download URL for portable JDK (using Adoptium/Eclipse Temurin)
+    // Format: https://github.com/adoptium/temurin{version}-binaries/releases/download/jdk-{version}.{patch}/OpenJDK{version}U-jdk_x64_windows_hotspot_{major}_{patch}.zip
+    const downloadUrl = await getJavaDownloadUrl(javaVersion, dbgFunc);
+    if (!downloadUrl) {
+        throw new Error(`Failed to determine download URL for Java ${javaVersion}`);
+    }
+    
+    dbgFunc && dbgFunc('java download URL resolved', { javaVersion, downloadUrl });
+    
+    // Create java directory if needed
+    const javaBaseDir = path.join(getLauncherDataPath(), 'java');
+    if (!fs.existsSync(javaBaseDir)) {
+        fs.mkdirSync(javaBaseDir, { recursive: true });
+        dbgFunc && dbgFunc('java base directory created', javaBaseDir);
+    }
+    
+    // Download Java
+    const zipPath = path.join(javaBaseDir, `jdk-${javaVersion}.zip`);
+    dbgFunc && dbgFunc('starting java download', { zipPath });
+    
+    await downloadJavaFile(downloadUrl, zipPath, dbgFunc);
+    dbgFunc && dbgFunc('java download complete', zipPath);
+    
+    // Extract Java
+    const extract = require('extract-zip');
+    dbgFunc && dbgFunc('extracting java archive', { zipPath, targetDir: javaDir });
+    
+    const tempExtractDir = path.join(javaBaseDir, `jdk-${javaVersion}-temp`);
+    
+    try {
+        // Clean up any previous temp extraction
+        if (fs.existsSync(tempExtractDir)) {
+            fs.rmSync(tempExtractDir, { recursive: true, force: true });
+        }
+        
+        await extract(zipPath, { dir: tempExtractDir });
+        dbgFunc && dbgFunc('java archive extracted to temp', tempExtractDir);
+        
+        // List extracted contents for debugging
+        const extractedItems = fs.readdirSync(tempExtractDir);
+        dbgFunc && dbgFunc('temp extraction contents', { items: extractedItems });
+        
+        // Recursively find a valid Java home containing bin/javaw.exe or bin/java.exe.
+        // Some archives have additional nesting like .../debug-image/jdk-21.0.10+7/.
+        let sourcePath = tempExtractDir;
+        let javaBinaryPath = null;
+        const scannedDirs = [];
+        
+        const findJavaHome = (startDir, maxDepth = 8) => {
+            const stack = [{ dir: startDir, depth: 0 }];
+            const visited = new Set();
+            
+            while (stack.length > 0) {
+                const current = stack.pop();
+                if (!current || visited.has(current.dir)) {
+                    continue;
+                }
+                visited.add(current.dir);
+                if (scannedDirs.length < 30) {
+                    scannedDirs.push(current.dir);
+                }
+                
+                const candidateJavaw = path.join(current.dir, 'bin', 'javaw.exe');
+                const candidateJava = path.join(current.dir, 'bin', 'java.exe');
+                if (fs.existsSync(candidateJavaw)) {
+                    return { home: current.dir, binaryPath: candidateJavaw };
+                }
+                if (fs.existsSync(candidateJava)) {
+                    return { home: current.dir, binaryPath: candidateJava };
+                }
+                
+                if (current.depth >= maxDepth) {
+                    continue;
+                }
+                
+                let children = [];
+                try {
+                    children = fs.readdirSync(current.dir)
+                        .map(name => path.join(current.dir, name))
+                        .filter(fullPath => {
+                            try {
+                                return fs.statSync(fullPath).isDirectory();
+                            } catch (_) {
+                                return false;
+                            }
+                        });
+                } catch (_) {
+                    children = [];
+                }
+                
+                for (const child of children) {
+                    stack.push({ dir: child, depth: current.depth + 1 });
+                }
+            }
+            
+            return null;
+        };
+        
+        const javaHomeResult = findJavaHome(tempExtractDir, 8);
+        if (!javaHomeResult) {
+            const errorMsg = `Could not find valid JDK structure. Extracted: ${extractedItems.join(', ')}. Scanned directories: ${scannedDirs.join('; ')}`;
+            dbgFunc && dbgFunc('jdk extraction structure error', { errorMsg, scannedDirs });
+            throw new Error(errorMsg);
+        }
+        
+        sourcePath = javaHomeResult.home;
+        javaBinaryPath = javaHomeResult.binaryPath;
+        dbgFunc && dbgFunc('found java home recursively', { sourcePath, javaBinaryPath });
+        
+        dbgFunc && dbgFunc('moving java to final location', { from: sourcePath, to: javaDir });
+        
+        // Move to final location
+        if (fs.existsSync(javaDir)) {
+            fs.rmSync(javaDir, { recursive: true, force: true });
+        }
+        fs.renameSync(sourcePath, javaDir);
+        
+        // Verify the move worked
+        const installedJavaPath = fs.existsSync(javawPath) ? javawPath : (fs.existsSync(javaExePath) ? javaExePath : null);
+        if (!installedJavaPath) {
+            let dirContents = [];
+            try {
+                dirContents = fs.readdirSync(javaDir);
+            } catch (_) {
+                dirContents = [];
+            }
+            throw new Error(`Java move/extraction failed. Expected ${javawPath} or ${javaExePath} but found: ${dirContents.join(', ')}`);
+        }
+        
+        dbgFunc && dbgFunc('java installation complete', { javaDir, javaPath: installedJavaPath });
+        return installedJavaPath;
+    } catch (err) {
+        dbgFunc && dbgFunc('java extraction failed', { error: err.message, stack: err.stack });
+        
+        // Cleanup on error
+        try {
+            if (fs.existsSync(tempExtractDir)) {
+                fs.rmSync(tempExtractDir, { recursive: true, force: true });
+                dbgFunc && dbgFunc('cleaned up temp dir after error', tempExtractDir);
+            }
+        } catch (cleanupErr) {
+            dbgFunc && dbgFunc('temp cleanup failed', cleanupErr.message);
+        }
+        
+        throw err;
+    } finally {
+        // Final cleanup of zip file
+        try {
+            if (fs.existsSync(zipPath)) {
+                fs.unlinkSync(zipPath);
+                dbgFunc && dbgFunc('cleaned up zip file', zipPath);
+            }
+        } catch (zipErr) {
+            dbgFunc && dbgFunc('zip cleanup failed', zipErr.message);
+        }
+    }
+}
+
+async function getJavaDownloadUrl(javaVersion, dbgFunc) {
+    try {
+        // Temurin releases: https://api.github.com/repos/adoptium/temurin{version}-binaries/releases
+        const repoName = `temurin${javaVersion}-binaries`;
+        const apiUrl = `https://api.github.com/repos/adoptium/${repoName}/releases/latest`;
+        
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+            dbgFunc && dbgFunc('failed to fetch java releases', { javaVersion, status: response.status });
+            return null;
+        }
+        
+        const release = await response.json();
+        
+        const assets = release.assets || [];
+        const preferredAsset = assets.find(a =>
+            a.name.includes('OpenJDK') &&
+            a.name.includes('jdk_x64_windows_hotspot') &&
+            a.name.endsWith('.zip')
+        );
+        
+        const fallbackAsset = assets.find(a => {
+            const name = a.name.toLowerCase();
+            return name.includes('openjdk') &&
+                name.includes('windows') &&
+                name.includes('x64') &&
+                name.includes('jdk') &&
+                name.endsWith('.zip') &&
+                !name.includes('debugimage') &&
+                !name.includes('testimage') &&
+                !name.includes('static-libs') &&
+                !name.includes('sources');
+        });
+        
+        const asset = preferredAsset || fallbackAsset;
+        
+        if (!asset) {
+            dbgFunc && dbgFunc('no suitable java asset found in release', { javaVersion, availableAssets: release.assets?.map(a => a.name) });
+            return null;
+        }
+        
+        dbgFunc && dbgFunc('selected java asset', { javaVersion, assetName: asset.name, url: asset.browser_download_url });
+        
+        return asset.browser_download_url;
+    } catch (err) {
+        dbgFunc && dbgFunc('error resolving java download URL', { javaVersion, error: err.message });
+        return null;
+    }
+}
+
+async function downloadJavaFile(url, dest, dbgFunc, retryCount = 0, maxRetries = 3) {
+    return new Promise((resolve, reject) => {
+        const https = require('https');
+        const canRenderBar = !!(process.stdout && process.stdout.isTTY);
+        let barStarted = false;
+        let lastRenderedPercent = -1;
+        let lastRenderTime = 0;
+
+        const finishBarLine = () => {
+            if (canRenderBar && barStarted) {
+                process.stdout.write('\n');
+                barStarted = false;
+            }
+        };
+
+        const renderProgressBar = (downloadedSize, totalSize, force = false) => {
+            if (!canRenderBar || totalSize <= 0) {
+                return;
+            }
+
+            const percent = Math.min(100, Math.floor((downloadedSize / totalSize) * 100));
+            const now = Date.now();
+            if (!force && percent === lastRenderedPercent && (now - lastRenderTime) < 100) {
+                return;
+            }
+
+            const width = 30;
+            const filled = Math.round((percent / 100) * width);
+            const bar = `${'='.repeat(filled)}${'-'.repeat(width - filled)}`;
+            const downloadedMb = (downloadedSize / (1024 * 1024)).toFixed(1);
+            const totalMb = (totalSize / (1024 * 1024)).toFixed(1);
+
+            barStarted = true;
+            process.stdout.write(`\rJava download [${bar}] ${String(percent).padStart(3)}% ${downloadedMb}/${totalMb} MB`);
+
+            lastRenderedPercent = percent;
+            lastRenderTime = now;
+
+            if (force && percent >= 100) {
+                finishBarLine();
+            }
+        };
+        
+        // Clean up any existing file before starting
+        if (fs.existsSync(dest)) {
+            try {
+                fs.unlinkSync(dest);
+            } catch (e) {
+                // ignore
+            }
+        }
+        
+        const file = fs.createWriteStream(dest);
+        
+        https.get(url, { headers: { 'User-Agent': 'Minevanced Launcher' } }, (response) => {
+            if (response.statusCode === 302 || response.statusCode === 301) {
+                // Follow redirect
+                file.close();
+                return downloadJavaFile(response.headers.location, dest, dbgFunc, retryCount, maxRetries).then(resolve).catch(reject);
+            }
+            
+            if (response.statusCode !== 200) {
+                file.close();
+                try { fs.unlinkSync(dest); } catch (e) {}
+                finishBarLine();
+                
+                const isTransient = response.statusCode >= 500 && response.statusCode < 600;
+                const shouldRetry = isTransient && retryCount < maxRetries;
+                
+                dbgFunc && dbgFunc('java download http error', { 
+                    url, 
+                    statusCode: response.statusCode, 
+                    isTransient, 
+                    retryCount,
+                    maxRetries,
+                    shouldRetry
+                });
+                
+                if (shouldRetry) {
+                    const delayMs = 2000 * (retryCount + 1); // Exponential backoff: 2s, 4s, 6s
+                    dbgFunc && dbgFunc('java download retrying', { 
+                        statusCode: response.statusCode,
+                        attempt: retryCount + 1,
+                        maxRetries,
+                        delayMs
+                    });
+                    setTimeout(() => {
+                        downloadJavaFile(url, dest, dbgFunc, retryCount + 1, maxRetries).then(resolve).catch(reject);
+                    }, delayMs);
+                } else {
+                    reject(`HTTP ${response.statusCode}: ${url}`);
+                }
+                return;
+            }
+            
+            const totalSize = parseInt(response.headers['content-length'] || 0);
+            let downloadedSize = 0;
+            
+            response.on('data', (chunk) => {
+                downloadedSize += chunk.length;
+                renderProgressBar(downloadedSize, totalSize);
+            });
+            
+            response.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                renderProgressBar(downloadedSize, totalSize, true);
+                finishBarLine();
+                dbgFunc && dbgFunc('java download stream finished', dest);
+                resolve();
+            });
+        }).on('error', (err) => {
+            file.close();
+            try { fs.unlinkSync(dest); } catch (e) {}
+            finishBarLine();
+            
+            if (retryCount < maxRetries) {
+                const delayMs = 2000 * (retryCount + 1);
+                dbgFunc && dbgFunc('java download error, retrying', { 
+                    url,
+                    error: err.message,
+                    attempt: retryCount + 1,
+                    maxRetries,
+                    delayMs
+                });
+                setTimeout(() => {
+                    downloadJavaFile(url, dest, dbgFunc, retryCount + 1, maxRetries).then(resolve).catch(reject);
+                }, delayMs);
+            } else {
+                dbgFunc && dbgFunc('java download network error (max retries exceeded)', { url, error: err.message });
+                reject(err);
+            }
+        });
+    });
+}
+
 let mainWindow;
 let splashWindow;
 
@@ -221,7 +613,7 @@ ipcMain.on('request-mods', (event, instanceName) => {
       if (targetInstance.toLowerCase() === 'minevanced') {
           targetInstance = 'minevanced-modded'; // Default to modded visual fallback
       }
-    const modsPath = path.join(app.getPath('appData'), '.minevanced', targetInstance, 'mods');
+    const modsPath = path.join(getLauncherDataPath(), targetInstance, 'mods');
     let modArray = [];
     if (fs.existsSync(modsPath)) {
         try {
@@ -284,7 +676,7 @@ ipcMain.on('request-modpacks', async (event) => {
         }
 
         // Read local invites
-        const localManifestDir = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + "/.local/share"), '.minevanced', 'manifests');
+        const localManifestDir = path.join(getLauncherDataPath(), 'manifests');
         if (!fs.existsSync(localManifestDir)) fs.mkdirSync(localManifestDir, { recursive: true });
 
         const localFiles = fs.readdirSync(localManifestDir);
@@ -356,7 +748,7 @@ ipcMain.on('resolve-invite', async (event, code) => {
                 } catch (e) {}
             }
 
-            const localManifestDir = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + "/.local/share"), '.minevanced', 'manifests');
+            const localManifestDir = path.join(getLauncherDataPath(), 'manifests');
             if (!fs.existsSync(localManifestDir)) fs.mkdirSync(localManifestDir, { recursive: true });
 
             fs.writeFileSync(
@@ -376,7 +768,7 @@ ipcMain.on('resolve-invite', async (event, code) => {
 
 ipcMain.on('delete-instance', (event, targetId) => {
     try {
-        const baseDir = path.join(process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME + "/.local/share"), '.minevanced');
+        const baseDir = getLauncherDataPath();
         const instancePath = path.join(baseDir, 'instances', targetId);
 
         if (fs.existsSync(instancePath)) {
@@ -677,9 +1069,37 @@ ipcMain.on('kill-game', () => {
 
 ipcMain.on('launch-game', async (event, configRequest) => {
     console.log("Starting Minevanced Launch Sequence...");
+    const launchTraceId = `LCH-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const dbg = (stage, details) => {
+        const ts = new Date().toISOString();
+        if (details !== undefined) {
+            console.log(`[${launchTraceId}] [${ts}] ${stage}:`, details);
+        } else {
+            console.log(`[${launchTraceId}] [${ts}] ${stage}`);
+        }
+    };
+    dbg('launch-game event received');
+    // Removed verbose payload logging to reduce console spam
+    // dbg('raw configRequest payload', {
+    //     instance: configRequest && configRequest.instance,
+    //     version: configRequest && configRequest.version,
+    //     profile: configRequest && configRequest.profile,
+    //     ram: configRequest && configRequest.ram
+    // });
+    
+    // Validate payload
+    if (!configRequest || !configRequest.instance || configRequest.ram === null || configRequest.ram === undefined) {
+        const errMsg = 'Invalid launch payload received - ensure you have selected a modpack and created an account';
+        dbg('ERROR', errMsg);
+        window.webContents.send('update-status', errMsg);
+        showErrorAlert('Launch Error', errMsg);
+        return;
+    }
     
     // Support multi-instance structure
       let instanceName = configRequest.instance || 'vanilla';
+      // Removed verbose logging
+      // dbg('initial instanceName', instanceName);
 
       // Apply nested built-in profiles properly to separate folders, removing the classic instance fallback
       if (instanceName === 'minevanced') {
@@ -689,6 +1109,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
               instanceName = 'minevanced-modded';
           }
       }
+      // Removed verbose logging
+      // dbg('resolved instanceName', instanceName);
 
     const crypto = require('crypto');
     const https = require('https');
@@ -698,7 +1120,11 @@ ipcMain.on('launch-game', async (event, configRequest) => {
 
     // appData inherently points to C:\Users\User\AppData\Roaming on Windows
     const launcher = new Client();
-    const rootPath = path.join(app.getPath('appData'), '.minevanced', instanceName);
+    const rootPath = path.join(getLauncherDataPath(), instanceName);
+    // Removed verbose platform/paths logging
+    // dbg('platform details', {...});
+    // dbg('paths', {...});
+    // dbg('rootPath exists before sync', fs.existsSync(rootPath));
 
     function getFileHash(filePath) {
         return new Promise((resolve) => {
@@ -713,18 +1139,25 @@ ipcMain.on('launch-game', async (event, configRequest) => {
 
     function downloadFile(url, dest) {
         return new Promise((resolve, reject) => {
+            // Removed verbose download logging
+            // dbg('download start', { url, dest });
             const file = fs.createWriteStream(dest);
             const client = url.startsWith('https') ? https : http;
 
             // Adding { rejectUnauthorized: false } bypasses strict SSL checks
             // which helps private setups with self-signed certs pass the download phase!
             client.get(url, { rejectUnauthorized: false }, (response) => {
+                // Removed verbose response logging
+                // dbg('download response', {...});
                 if (response.statusCode === 301 || response.statusCode === 302) {
                     return downloadFile(response.headers.location, dest).then(resolve).catch(reject);
                 }
                 if (response.statusCode === 200) {
                     response.pipe(file);
-                    file.on('finish', () => file.close(resolve));
+                    file.on('finish', () => file.close(() => {
+                        // Removed verbose download complete logging
+                        resolve();
+                    }));
                 } else {
                     file.close();
                     fs.unlink(dest, () => {}); 
@@ -741,11 +1174,13 @@ ipcMain.on('launch-game', async (event, configRequest) => {
     let manifest = { minecraftVersion: '1.20.4' }; // Fallback offline configuration
 
     try {
+        // Removed verbose manifest phase logging
         mainWindow.webContents.send('update-status', 'Fetching Manifest from Server...');
         const fetch = (await import('node-fetch')).default;
 
         let targetManifestUrl = `http://localhost:8080/manifests/files/${instanceName}.json`;
         let manifestLoaded = false;
+        // Removed verbose URL logging
 
         // 1. Check Dev Local Overrides
         if (instanceName.startsWith('[DEV]')) {
@@ -761,6 +1196,7 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         
         // 2. Check Built-in local fallbacks first to support offline/locked installations like the sub-packs
         const builtinPath = path.join(__dirname, '.builtin-packs.json');
+        // Removed verbose builtin check logging
         if (!manifestLoaded && fs.existsSync(builtinPath)) {
             const builtins = JSON.parse(fs.readFileSync(builtinPath, 'utf-8'));
             const matchingBuiltin = builtins.find(b => b.id === instanceName);
@@ -778,9 +1214,11 @@ ipcMain.on('launch-game', async (event, configRequest) => {
              manifest = await response.json();
              mainWindow.webContents.send('update-status', `Loaded Remote Manifest: ${manifest.minecraftVersion}`);
         }
+        // Removed verbose manifest summary logging
 
     } catch (err) {
         console.warn("Failed to load manifest. Entering fallback.", err.message);
+        // Removed verbose manifest failure logging
         mainWindow.webContents.send('update-status', 'Manifest Load Failed - Fallback Version');
 
         // Artificial delay so the UI shows the "warning" message before jumping into the engine
@@ -789,9 +1227,11 @@ ipcMain.on('launch-game', async (event, configRequest) => {
 
     // --- MINEVANCED SYNC ENGINE (Mod Downloading) ---
     try {
+        // Removed verbose sync phase logging
         // Sync Legacy Mods Array
         if (manifest.mods && Array.isArray(manifest.mods)) {
             const modsPath = path.join(rootPath, 'mods');
+            // Removed verbose sync logging
             if (!fs.existsSync(modsPath)) {
                 fs.mkdirSync(modsPath, { recursive: true });
             }
@@ -893,14 +1333,17 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         }
     } catch (syncError) {
         console.error("Sync Engine Error:", syncError);
+        dbg('sync phase failed', { error: syncError.message, stack: syncError.stack });
         mainWindow.webContents.send('update-status', 'Warning: Sync Engine encountered an error.');
         await new Promise(r => setTimeout(r, 2000));
     }
 
     // Engine Launch happens strictly outside the Try/Catch block
     try {
+        dbg('engine phase started');
         const loaderType = (manifest.modLoader || 'vanilla').toLowerCase();
         let targetLoader = loaders[loaderType];
+        dbg('resolved loader type', { loaderType, loaderFound: !!targetLoader });
 
         if (!targetLoader) {
             console.warn(`Loader '${loaderType}' not found in tomate-loaders. Falling back to vanilla.`);
@@ -930,6 +1373,7 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         }
 
         mainWindow.webContents.send('update-status', `Initializing ${resolvedVersion} Engine...`);
+        dbg('requesting launchConfig from loader', { resolvedVersion, rootPath });
         const launchConfig = await targetLoader.getMCLCLaunchConfig({
             gameVersion: resolvedVersion,
             rootPath: rootPath
@@ -938,8 +1382,14 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         // Use requested RAM or fallback to default
         const savedConfig = loadConfig();
         const ramSetting = configRequest && configRequest.ram ? configRequest.ram : savedConfig.ram;
+        dbg('RAM setting resolved', { requested: configRequest && configRequest.ram, saved: savedConfig.ram, final: ramSetting });
         
         let activeAuth = savedConfig.authProfile;
+        dbg('auth profile presence', {
+            hasAuthProfile: !!savedConfig.authProfile,
+            authType: savedConfig.authType,
+            authName: savedConfig.authProfile && savedConfig.authProfile.name
+        });
 
         if (!activeAuth || !activeAuth.name) {
             // Re-check bypass specifically before throwing auth error in prod 
@@ -950,12 +1400,25 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             activeAuth = JSON.parse(JSON.stringify(activeAuth));
         }
 
+        // Ensure portable Java is ready
+        mainWindow.webContents.send('update-status', `Preparing Java ${getRequiredJavaVersion(resolvedVersion)}...`);
+        dbg('fetching portable java', resolvedVersion);
+        const javaPath = await getJavaPortable(resolvedVersion, dbg);
+        dbg('portable java ready', { javaPath, exists: fs.existsSync(javaPath) });
+
         let opts = {
             ...launchConfig,
             authorization: activeAuth, 
-            javaPath: 'javaw',
+            javaPath: javaPath,
             memory: { max: `${ramSetting}G`, min: "2G" }
         };
+        dbg('final launch options summary', {
+            javaPath: opts.javaPath,
+            memory: opts.memory,
+            hasAuthorization: !!opts.authorization,
+            authPlayer: opts.authorization && opts.authorization.name,
+            rootPath
+        });
 
         const progressPhases = {
             'classes': { start: 0, end: 15 },
@@ -966,8 +1429,79 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             'natives': { start: 95, end: 100 }
         };
         let fallbackPercent = 0;
+        let progressInterval = null; // Track artificial progress interval
+        const canRenderAssetBar = !!(process.stdout && process.stdout.isTTY);
+        let assetBarActive = false;
+        let lastAssetBarPercent = -1;
+        let lastAssetBarRenderAt = 0;
+
+        const clearAssetBar = () => {
+            if (!canRenderAssetBar || !assetBarActive) {
+                return;
+            }
+            process.stdout.write('\n');
+            assetBarActive = false;
+        };
+
+        const startArtificialProgress = () => {
+            // If progress gets stuck, artificially increment to 100%
+            if (progressInterval) clearInterval(progressInterval);
+            
+            progressInterval = setInterval(() => {
+                if (fallbackPercent < 100) {
+                    fallbackPercent = Math.min(100, fallbackPercent + 2);
+                    mainWindow.webContents.send('update-status', `Preparing Engine: ${Math.round(fallbackPercent)}%`);
+                }
+                if (fallbackPercent >= 100) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+            }, 300);
+        };
+
+        const stopArtificialProgress = () => {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        };
+
+        const renderAssetBar = (task, total, force = false) => {
+            if (!canRenderAssetBar || !total || total <= 0) {
+                return;
+            }
+
+            const percent = Math.max(0, Math.min(100, Math.floor((task / total) * 100)));
+            const now = Date.now();
+            if (!force && percent === lastAssetBarPercent && (now - lastAssetBarRenderAt) < 100) {
+                return;
+            }
+
+            const width = 28;
+            const filled = Math.round((percent / 100) * width);
+            const bar = `${'='.repeat(filled)}${'-'.repeat(width - filled)}`;
+
+            assetBarActive = true;
+            lastAssetBarPercent = percent;
+            lastAssetBarRenderAt = now;
+
+            process.stdout.write(`\rAssets download [${bar}] ${String(percent).padStart(3)}% (${task}/${total})`);
+            if (force && percent >= 100) {
+                clearAssetBar();
+            }
+        };
 
         launcher.on('progress', (e) => {
+            // Removed verbose dbg logging to reduce console spam
+            // dbg('launcher progress event', e);
+
+            const phaseType = e.type ? e.type.toLowerCase() : '';
+            if (phaseType === 'assets') {
+                renderAssetBar(e.task || 0, e.total || 0);
+            } else {
+                clearAssetBar();
+            }
+
             let percent = fallbackPercent;
             if (e.type && progressPhases[e.type.toLowerCase()]) {
                 const phase = progressPhases[e.type.toLowerCase()];
@@ -980,35 +1514,111 @@ ipcMain.on('launch-game', async (event, configRequest) => {
                 }
             }
 
+            // Start artificial progress if we hit 45% and no more events
+            if (fallbackPercent >= 45 && !progressInterval) {
+                startArtificialProgress();
+            }
+
             // Re-capitalize the first letter for UI cleanliness
             const displayType = e.type ? e.type.charAt(0).toUpperCase() + e.type.slice(1) : 'Engine';
             mainWindow.webContents.send('update-status', `Checking ${displayType}: ${Math.round(percent)}%`);
         });
 
         launcher.on('download-status', (e) => {
+            // Removed verbose dbg logging to reduce console spam
+            // dbg('launcher download-status event', e);
             const shortName = e.name ? (e.name.length > 50 ? '...' + e.name.slice(-50) : e.name) : 'files...';
             // Also append the overall engine progress so the UI bar stays accurate and moving
             mainWindow.webContents.send('update-status', `Downloading: ${shortName} ${Math.round(fallbackPercent)}%`);
         });
 
         launcher.on('data', (e) => {
-            // MCLC outputs console lines here
+            // Send logs to renderer
+            mainWindow.webContents.send('game-log', `[GAME] ${e}`);
+            
+            // Only log important game output, not every line
             if (e.includes("Setting user:")) {
+                 stopArtificialProgress();
+                 fallbackPercent = 100;
                  mainWindow.webContents.send('update-status', 'Game is running! 100%');
             }
+            // Removed console.log for every data event to reduce spam
+        });
+
+        launcher.on('debug', (e) => {
+            // Send debug logs to renderer
+            mainWindow.webContents.send('game-log', `[DEBUG] ${e}`);
+        });
+
+        launcher.on('arguments', (e) => {
+            // Send arguments logs to renderer
+            mainWindow.webContents.send('game-log', `[ARGS] ${e}`);
+        });
+
+        launcher.on('error', (e) => {
+            clearAssetBar();
+            stopArtificialProgress();
+            mainWindow.webContents.send('game-log', `[ERROR] ${e}`);
+            console.error(`[${launchTraceId}] [GAME ERROR EVENT]`, e);
         });
         
         launcher.on('close', (e) => {
-            console.log("Game exited with code:", e);
+            clearAssetBar();
+            stopArtificialProgress();
+            const exitCode = typeof e === 'number' ? e : (e && typeof e.code === 'number' ? e.code : -1);
+            console.log("Game exited with code:", exitCode);
+            // Removed verbose dbg logging for close event
+            // dbg('launcher close event payload', e);
+
+            if (exitCode === 0) {
+                console.log("Game session ended cleanly.");
+            } else {
+                mainWindow.webContents.send('update-status', `Game closed unexpectedly (code ${exitCode}).`);
+                dbg('non-zero exit detected', { exitCode });
+            }
+
             mainWindow.webContents.send('game-closed');
             activeGameProcess = null;
         });
 
         activeGameProcess = await launcher.launch(opts);
-        console.log("Game Launched Successfully!");
+        console.log("Game process started.", activeGameProcess && activeGameProcess.pid ? `PID: ${activeGameProcess.pid}` : '');
+        dbg('launcher.launch resolved', {
+            hasProcess: !!activeGameProcess,
+            pid: activeGameProcess && activeGameProcess.pid,
+            spawnfile: activeGameProcess && activeGameProcess.spawnfile,
+            spawnargs: activeGameProcess && activeGameProcess.spawnargs
+        });
+
+        if (activeGameProcess) {
+            activeGameProcess.on('error', (procErr) => {
+                console.error(`[${launchTraceId}] [PROCESS ERROR]`, procErr);
+            });
+
+            activeGameProcess.on('spawn', () => {
+                dbg('child process spawn event fired');
+            });
+
+            if (activeGameProcess.stdout) {
+                activeGameProcess.stdout.on('data', (chunk) => {
+                    console.log(`[${launchTraceId}] [STDOUT] ${chunk.toString().trim()}`);
+                });
+            }
+
+            if (activeGameProcess.stderr) {
+                activeGameProcess.stderr.on('data', (chunk) => {
+                    console.error(`[${launchTraceId}] [STDERR] ${chunk.toString().trim()}`);
+                });
+            }
+        }
 
     } catch (engineError) {
         console.error("Engine Launch Error:", engineError);
+        dbg('engine phase failed', {
+            message: engineError && engineError.message,
+            stack: engineError && engineError.stack,
+            name: engineError && engineError.name
+        });
         mainWindow.webContents.send('update-status', 'Error: Engine failed to launch.');
         mainWindow.webContents.send('game-closed'); // Reset UI if failed
     }

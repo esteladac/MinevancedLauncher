@@ -57,6 +57,26 @@ body.minimizing .window-wrapper {
     border-radius: 12px;
 }
 
+/* --- CUSTOM SCROLLBAR --- */
+.game-logs-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.game-logs-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.game-logs-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--accent-purple);
+    border-radius: 4px;
+}
+
+.game-logs-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #9d7aff;
+    box-shadow: 0 0 8px rgba(123, 82, 244, 0.5);
+}
+
 /* --- TITLE BAR --- */
 .title-bar {
     position: absolute;
@@ -241,15 +261,31 @@ body.minimizing .window-wrapper {
     align-items: center;
     gap: 15px;
     border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.3s ease;
 }
 
 .status-module.hidden { display: none; }
+
+.status-module.download-module {
+    animation: downloadPulse 2s ease-in-out infinite;
+}
+
 .status-text { display: flex; flex-direction: column; }
-.status-text small { color: var(--text-dim); font-size: 11px; }
-.status-text strong { font-size: 14px; font-weight: 600; }
+.status-text small { color: var(--text-dim); font-size: 11px; transition: color 0.2s ease; }
+.status-text strong { font-size: 14px; font-weight: 600; transition: all 0.15s ease; letter-spacing: -0.3px; }
 .right-align { text-align: right; }
 .avatar { width: 35px; height: 35px; border-radius: 50%; opacity: 1; transition: opacity 0.3s ease-in-out; }
-.status-icon { width: 20px; height: 20px; fill: none; stroke: var(--text-dim); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.status-icon { 
+    width: 20px; 
+    height: 20px; 
+    fill: none; 
+    stroke: var(--accent-purple); 
+    stroke-width: 2; 
+    stroke-linecap: round; 
+    stroke-linejoin: round;
+    animation: downloadPulse 1.5s ease-in-out infinite;
+    transition: stroke 0.2s ease;
+}
 
 /* --- ROUTING SYSTEM --- */
 .views-container {
@@ -375,6 +411,22 @@ body.minimizing .window-wrapper {
 .btn-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 @keyframes spin { 100% { transform: rotate(360deg); } }
+
+@keyframes downloadPulse {
+    0%, 100% { 
+        opacity: 0.7;
+        text-shadow: 0 0 0 rgba(123, 82, 244, 0);
+    }
+    50% { 
+        opacity: 1;
+        text-shadow: 0 0 12px rgba(123, 82, 244, 0.4);
+    }
+}
+
+@keyframes progressGlow {
+    0%, 100% { box-shadow: 0 0 8px var(--accent-purple); }
+    50% { box-shadow: 0 0 15px var(--accent-purple), inset 0 0 8px rgba(123, 82, 244, 0.2); }
+}
 
 /* --- SETTINGS VIEW --- */
 .settings-header h2 { margin: 0 0 5px 0; font-size: 32px; }

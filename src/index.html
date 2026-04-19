@@ -53,8 +53,8 @@
                             <small>Minevanced Sync</small>
                             <strong id="dl-progress" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; display: inline-block;" data-translate="status.waitingEngine">Waiting for engine...</strong>
                         </div>
-                        <div style="position: absolute; bottom: 12px; left: 20px; right: 20px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
-                            <div id="dl-progress-bar" style="height: 100%; width: 0%; background: var(--accent-purple); transition: width 0.3s ease; box-shadow: 0 0 8px var(--accent-purple);"></div>
+                        <div style="position: absolute; bottom: 12px; left: 20px; right: 20px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; border: 0.5px solid rgba(123, 82, 244, 0.2); box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);">
+                            <div id="dl-progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #7b52f4, #9d7aff); transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 8px var(--accent-purple), inset 0 1px 0 rgba(255,255,255,0.2); border-radius: 1px; position: relative;"></div>
                         </div>
                     </div>
 
@@ -109,6 +109,7 @@
                             <p class="modpack-desc" data-translate="home.heroDescModded">A highly optimized vanilla survival experience on the latest version of Minecraft. Experience the game exactly how we designed it.</p>
                             <div class="action-buttons">
                                 <button class="play-btn" id="play-btn"><svg class="play-icon" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"></path></svg> <span data-translate="home.play">PLAY</span></button>
+                                <button class="play-btn" id="logs-btn" style="display: none; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); gap: 6px;"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2h-1a9 9 0 0 0-9 9v1a9 9 0 0 0 9 9h1a9 9 0 0 0 9-9v-1a9 9 0 0 0-9-9z"></path><polyline points="9 9 12 12 15 9"></polyline></svg> <span>LOGS</span></button>
                             </div>
                         </div>
                         <footer class="bottom-bar">
@@ -258,6 +259,25 @@
 
             </main>
             
+            <!-- Account Required Modal (shown on first play attempt) -->
+            <div id="account-required-modal" class="modal-overlay hidden" style="z-index: 2000;">
+                <div class="modal-content" style="max-width: 400px; text-align: center;">
+                    <h3 style="color: var(--accent-purple); margin-top: 0; font-size: 20px; margin-bottom: 15px;">Create Minevanced Account</h3>
+                    <p style="color: var(--text-dim); margin-bottom: 25px;">You need a MinevancedAuth account to play. Create one now or log in with an existing account.</p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="account-modal-user" placeholder="Username" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; flex: 1;">
+                            <input type="password" id="account-modal-pass" placeholder="Password" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; flex: 1;">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="play-btn" id="account-modal-register" style="flex: 1; background: var(--accent-purple); padding: 12px;">Register</button>
+                            <button class="play-btn" id="account-modal-login" style="flex: 1; background: rgba(255,255,255,0.1); padding: 12px;">Login</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Custom Themed Alert Modal -->
             <div id="custom-alert" class="modal-overlay hidden" style="z-index: 2000;">
                 <div class="modal-content">
@@ -276,6 +296,18 @@
                         <button class="play-btn modal-btn" id="custom-confirm-ok" style="background: #e74c3c; flex: 1;">Delete</button>
                         <button class="play-btn modal-btn" id="custom-confirm-cancel" style="background: rgba(255,255,255,0.1); flex: 1;">Cancel</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Game Logs Modal -->
+            <div id="game-logs-modal" class="modal-overlay hidden" style="z-index: 2000;">
+                <div class="modal-content" style="max-width: 700px; width: 90vw; max-height: 70vh; display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                        <h3 style="margin: 0; color: var(--accent-purple);">Game Logs</h3>
+                        <button id="logs-clear-btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Clear</button>
+                    </div>
+                    <pre id="game-logs-content" style="flex: 1; overflow-y: auto; background: #0a0a0a; padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); font-size: 11px; line-height: 1.4; color: #a0a0a0; font-family: 'Courier New', monospace; margin: 0; white-space: pre-wrap; word-wrap: break-word; text-align: left;" class="game-logs-scrollbar"></pre>
+                    <button class="play-btn modal-btn" id="logs-close-btn" style="margin-top: 15px; background: rgba(255,255,255,0.1);">Close</button>
                 </div>
             </div>
 
@@ -624,6 +656,9 @@
         let initialConfigLoad = null;
         ipcRenderer.send('request-config');
         ipcRenderer.on('load-config', (event, config) => {
+            // Load account status - only true if explicitly set to true
+            hasAccount = config.hasAccount === true && config.authProfile && config.authProfile.name;
+            
             if (config.firstRun !== false) {
                 document.getElementById('onboarding-modal').classList.remove('hidden');
                 
@@ -632,7 +667,7 @@
                 const defaultLang = ['en', 'fr'].includes(sysLang) ? sysLang : 'en';
                 
                 config.language = defaultLang;
-                ipcRenderer.send('save-config', { firstRun: false, language: defaultLang });
+                ipcRenderer.send('save-config', { firstRun: false, language: defaultLang, hasAccount: false });
             }
 
             // Apply selected language (defaults to 'en' safely if not set yet on existing old configs)
@@ -661,6 +696,7 @@
 
             if (config.authProfile && config.authProfile.name) {
                 updateProfileUI(config.authProfile.name, config.authType);
+                hasAccount = true; // User has a profile logged in
             }
             if (config.lastInstance) {
                 initialConfigLoad = config.lastInstance;
@@ -693,6 +729,7 @@
                     input.dataset.realValue = 'latest';
                 }
             }
+
         });
 
         // --- AUTHENTICATION LOGIC ---
@@ -745,8 +782,71 @@
             ipcRenderer.send('register-offline', { username: user, password: pass });
         });
 
+        // Account Required Modal Listeners (shown on first play attempt)
+        document.getElementById('account-modal-register').addEventListener('click', () => {
+            const user = document.getElementById('account-modal-user').value.trim();
+            const pass = document.getElementById('account-modal-pass').value;
+            if (!user || !pass) return showCustomAlert("Registration Error", "Please enter both a username and a password to register.");
+            
+            // Store payload for later launch - build it correctly
+            const ramVal = ramSlider ? ramSlider.value : 4;
+            const instanceVal = activeInstanceId || 'minevanced';
+            let versionVal = null;
+            let profileVal = '';
+            
+            if (instanceVal === 'vanilla') {
+                const inputElem = document.getElementById('vanilla-version-input');
+                const rawVal = inputElem ? inputElem.value || 'latest' : 'latest';
+                versionVal = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
+            } else if (instanceVal === 'minevanced') {
+                const selectElem = document.getElementById('minevanced-version-select');
+                profileVal = selectElem ? selectElem.value : 'modded';
+            }
+            
+            pendingGamePayload = {
+                ram: parseInt(ramVal, 10),
+                instance: instanceVal,
+                profile: profileVal
+            };
+            if (versionVal) pendingGamePayload.version = versionVal;
+            
+            ipcRenderer.send('register-offline', { username: user, password: pass });
+        });
+
+        document.getElementById('account-modal-login').addEventListener('click', () => {
+            const user = document.getElementById('account-modal-user').value.trim();
+            const pass = document.getElementById('account-modal-pass').value;
+            if (!user || !pass) return showCustomAlert("Login Error", "Please enter both a username and a password to login.");
+            
+            // Store payload for later launch - build it correctly
+            const ramVal = ramSlider ? ramSlider.value : 4;
+            const instanceVal = activeInstanceId || 'minevanced';
+            let versionVal = null;
+            let profileVal = '';
+            
+            if (instanceVal === 'vanilla') {
+                const inputElem = document.getElementById('vanilla-version-input');
+                const rawVal = inputElem ? inputElem.value || 'latest' : 'latest';
+                versionVal = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
+            } else if (instanceVal === 'minevanced') {
+                const selectElem = document.getElementById('minevanced-version-select');
+                profileVal = selectElem ? selectElem.value : 'modded';
+            }
+            
+            pendingGamePayload = {
+                ram: parseInt(ramVal, 10),
+                instance: instanceVal,
+                profile: profileVal
+            };
+            if (versionVal) pendingGamePayload.version = versionVal;
+            
+            ipcRenderer.send('login-offline', { username: user, password: pass });
+        });
+
         ipcRenderer.on('auth-success', (event, data) => {
             updateProfileUI(data.profile.name, data.type);
+            hasAccount = true;
+            ipcRenderer.send('save-config', { hasAccount: true });
             
             // Clear password field for security
             if (document.getElementById('offline-pass-input')) {
@@ -757,6 +857,13 @@
             
             document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`;
             document.getElementById('login-ms-btn').style.pointerEvents = "auto";
+            
+            // If there's a pending game launch, execute it now
+            if (pendingGamePayload) {
+                setTimeout(() => launchGame(pendingGamePayload), 500);
+                pendingGamePayload = null;
+                document.getElementById('account-required-modal').classList.add('hidden');
+            }
         });
 
         ipcRenderer.on('auth-failed', (event, error) => {
@@ -766,14 +873,37 @@
         });
 
         ipcRenderer.on('register-success', (event, message) => {
-            showCustomAlert("Registration Complete!", message + "\nYou can now log in.");
+            hasAccount = true;
+            ipcRenderer.send('save-config', { hasAccount: true });
+            
+            showCustomAlert("Registration Complete!", message + "\nLogging you in automatically...");
+            
+            // Close the modal and auto-login if possible
+            setTimeout(() => {
+                document.getElementById('account-required-modal').classList.add('hidden');
+                // Refresh to show the new account is ready
+            }, 500);
         });
 
         ipcRenderer.on('register-failed', (event, error) => {
             showCustomAlert("Registration Failed", error);
         });
 
-        // --- PLAY LOGIC ---
+        // --- ACCOUNT CHECK & PLAY LOGIC ---
+        let hasAccount = false; // Track if user has an account
+        let pendingGamePayload = null; // Store payload to launch after account creation
+
+        // Helper function to actually launch the game
+        function launchGame(payload) {
+            const btn = document.getElementById('play-btn');
+            btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s steps(8) infinite;"><circle cx="12" cy="3" r="2.5" opacity="1"/><circle cx="18.36" cy="5.64" r="2.5" opacity="0.875"/><circle cx="21" cy="12" r="2.5" opacity="0.75"/><circle cx="18.36" cy="18.36" r="2.5" opacity="0.625"/><circle cx="12" cy="21" r="2.5" opacity="0.5"/><circle cx="5.64" cy="18.36" r="2.5" opacity="0.375"/><circle cx="3" cy="12" r="2.5" opacity="0.25"/><circle cx="5.64" cy="5.64" r="2.5" opacity="0.125"/></svg> LAUNCHING...`;
+            btn.style.opacity = "0.7";
+            btn.style.pointerEvents = "none";
+            btn.style.background = "var(--accent-purple)";
+            document.getElementById('download-tracker').classList.remove('hidden');
+            ipcRenderer.send('launch-game', payload);
+        }
+
         document.getElementById('play-btn').addEventListener('click', () => {
             const btn = document.getElementById('play-btn');
             
@@ -784,15 +914,12 @@
                 return;
             }
 
-            // Change button to a custom SVG dot spinner matching the theme
-            btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s steps(8) infinite;"><circle cx="12" cy="3" r="2.5" opacity="1"/><circle cx="18.36" cy="5.64" r="2.5" opacity="0.875"/><circle cx="21" cy="12" r="2.5" opacity="0.75"/><circle cx="18.36" cy="18.36" r="2.5" opacity="0.625"/><circle cx="12" cy="21" r="2.5" opacity="0.5"/><circle cx="5.64" cy="18.36" r="2.5" opacity="0.375"/><circle cx="3" cy="12" r="2.5" opacity="0.25"/><circle cx="5.64" cy="5.64" r="2.5" opacity="0.125"/></svg> LAUNCHING...`;
-            btn.style.opacity = "0.7";
-            btn.style.pointerEvents = "none";
-            btn.style.background = "var(--accent-purple)"; // Reset background back to primary
-            
-            // Show tracker pill
-            document.getElementById('download-tracker').classList.remove('hidden');
-            
+            // Check if user has an account before allowing launch
+            if (!hasAccount) {
+                document.getElementById('account-required-modal').classList.remove('hidden');
+                return;
+            }
+
             // Gather exact selected version profiles
             const allocatedRam = ramSlider.value;
             let selectedVersion = 'latest';
@@ -803,7 +930,7 @@
                 selectedVersion = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
             } else if (activeInstanceId === 'minevanced') {
                 selectedProfile = document.getElementById('minevanced-version-select').value;
-                selectedVersion = null; // Do not send version to backend, let it fall back to built-in JSON
+                selectedVersion = null;
             }
 
             const payload = {
@@ -813,18 +940,23 @@
             };
             if (selectedVersion) payload.version = selectedVersion;
 
-            // Send Launch Signal + User RAM Setting to backend
-            ipcRenderer.send('launch-game', payload);
+            launchGame(payload);
         });
 
-        // Listen for live sync/download progress from backend
-        ipcRenderer.on('update-status', (event, message) => {
+        // Listen for live sync/download progress from backend with throttling to prevent flicker
+        let lastStatusUpdate = 0;
+        let pendingStatusUpdate = null;
+        const STATUS_THROTTLE_MS = 150; // Max update frequency
+        let statusUpdateTimeout = null;
+
+        function applyStatusUpdate(message) {
             document.getElementById('dl-progress').innerText = message;
             
-            // Basic logic to guess progress based on common patterns if percent isn't explicit
-            const match = message.match(/(\d+)%/); // Catch if it sends 'Checking Engine: 45%'
+            // Parse progress percentage from message
+            const match = message.match(/(\d+)%/);
             if (match) {
-                document.getElementById('dl-progress-bar').style.width = match[1] + '%';
+                const percent = parseInt(match[1], 10);
+                document.getElementById('dl-progress-bar').style.width = percent + '%';
             } else if (message.toLowerCase().includes('launching') || message.toLowerCase().includes('done')) {
                 document.getElementById('dl-progress-bar').style.width = '100%';
             }
@@ -835,6 +967,70 @@
                 btn.style.background = "#d32f2f";
                 btn.style.opacity = "1";
                 btn.style.pointerEvents = "auto";
+                
+                // Show logs button
+                document.getElementById('logs-btn').style.display = 'flex';
+            }
+        }
+
+        ipcRenderer.on('update-status', (event, message) => {
+            const now = Date.now();
+            pendingStatusUpdate = message;
+            
+            // Clear any pending timeout
+            if (statusUpdateTimeout) clearTimeout(statusUpdateTimeout);
+            
+            // If enough time has passed, apply immediately
+            if (now - lastStatusUpdate >= STATUS_THROTTLE_MS) {
+                applyStatusUpdate(message);
+                lastStatusUpdate = now;
+            } else {
+                // Schedule update for after throttle period
+                const delayMs = STATUS_THROTTLE_MS - (now - lastStatusUpdate);
+                statusUpdateTimeout = setTimeout(() => {
+                    if (pendingStatusUpdate) {
+                        applyStatusUpdate(pendingStatusUpdate);
+                        lastStatusUpdate = Date.now();
+                        pendingStatusUpdate = null;
+                    }
+                }, delayMs);
+            }
+        });
+
+        // --- GAME LOGS LOGIC ---
+        let gameLogs = [];
+
+        // Show logs modal
+        document.getElementById('logs-btn').addEventListener('click', () => {
+            document.getElementById('game-logs-modal').classList.remove('hidden');
+            document.getElementById('game-logs-content').innerText = gameLogs.join('\n');
+            // Scroll to bottom
+            document.getElementById('game-logs-content').scrollTop = document.getElementById('game-logs-content').scrollHeight;
+        });
+
+        // Close logs modal
+        document.getElementById('logs-close-btn').addEventListener('click', () => {
+            document.getElementById('game-logs-modal').classList.add('hidden');
+        });
+
+        // Clear logs
+        document.getElementById('logs-clear-btn').addEventListener('click', () => {
+            gameLogs = [];
+            document.getElementById('game-logs-content').innerText = '';
+        });
+
+        // Receive game logs from main process
+        ipcRenderer.on('game-log', (event, logLine) => {
+            gameLogs.push(logLine);
+            // Keep only last 500 lines to avoid memory issues
+            if (gameLogs.length > 500) {
+                gameLogs.shift();
+            }
+            // Auto-scroll in logs modal if it's visible
+            const logsContent = document.getElementById('game-logs-content');
+            if (!document.getElementById('game-logs-modal').classList.contains('hidden')) {
+                logsContent.innerText = gameLogs.join('\n');
+                logsContent.scrollTop = logsContent.scrollHeight;
             }
         });
 
@@ -849,6 +1045,14 @@
             document.getElementById('download-tracker').classList.add('hidden');
             document.getElementById('dl-progress-bar').style.width = '0%';
             document.getElementById('dl-progress').innerText = 'Waiting for engine...';
+            
+            // Hide logs button
+            document.getElementById('logs-btn').style.display = 'none';
+            
+            // Clear any pending throttled updates when game closes
+            if (statusUpdateTimeout) clearTimeout(statusUpdateTimeout);
+            pendingStatusUpdate = null;
+            lastStatusUpdate = 0;
         });
 
         // Top right profile click opens Auth view
@@ -1011,11 +1215,11 @@
                 const buttons = container.querySelectorAll('.modpack-action-btn');
                 buttons.forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const targetId = e.target.getAttribute('data-id');
-                        const targetName = e.target.getAttribute('data-name');
-                        const loaderType = e.target.getAttribute('data-loader').toLowerCase();
-                        const coverImg = e.target.getAttribute('data-cover');
-                        const descText = e.target.getAttribute('data-desc');
+                        const targetId = e.currentTarget.getAttribute('data-id');
+                        const targetName = e.currentTarget.getAttribute('data-name');
+                        const loaderType = e.currentTarget.getAttribute('data-loader').toLowerCase();
+                        const coverImg = e.currentTarget.getAttribute('data-cover');
+                        const descText = e.currentTarget.getAttribute('data-desc');
                         
                         // Reset all buttons to 'Select'
                         const selectText = currentLanguageData['modpacks.select'] || 'Select';
@@ -1103,7 +1307,7 @@
                 // Add listeners for dynamic manage buttons
                 container.querySelectorAll('.modpack-reinstall-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const targetId = e.target.getAttribute('data-id');
+                        const targetId = e.currentTarget.getAttribute('data-id');
                           showCustomConfirm('Reinstall Instance', 'Reinstalling will purge the existing local instance folder and sync freshly from the server on the next launch. Proceed?', 'Reinstall', (confirmed) => {
                               if (confirmed) {
                                   ipcRenderer.send('delete-instance', targetId);
@@ -1114,7 +1318,7 @@
 
                   container.querySelectorAll('.modpack-delete-btn').forEach(btn => {
                       btn.addEventListener('click', (e) => {
-                          const targetId = e.target.getAttribute('data-id');
+                          const targetId = e.currentTarget.getAttribute('data-id');
                           showCustomConfirm('Delete Modpack', 'Are you sure you want to delete this custom modpack? All its instance files will be removed locally.', 'Delete', (confirmed) => {
                               if (confirmed) {
                                   ipcRenderer.send('delete-instance', targetId);
