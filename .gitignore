@@ -1,0 +1,7 @@
+node_modules
+.env
+startup.log
+dist
+package-lock.json
+manifests/dummy.json
+user.json
