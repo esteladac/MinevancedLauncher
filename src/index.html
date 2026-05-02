@@ -791,24 +791,24 @@
             // Store payload for later launch - build it correctly
             const ramVal = ramSlider ? ramSlider.value : 4;
             const instanceVal = activeInstanceId || 'minevanced';
-            let versionVal = null;
             let profileVal = '';
-            
-            if (instanceVal === 'vanilla') {
-                const inputElem = document.getElementById('vanilla-version-input');
-                const rawVal = inputElem ? inputElem.value || 'latest' : 'latest';
-                versionVal = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
-            } else if (instanceVal === 'minevanced') {
-                const selectElem = document.getElementById('minevanced-version-select');
-                profileVal = selectElem ? selectElem.value : 'modded';
-            }
-            
-            pendingGamePayload = {
+            const payload = {
                 ram: parseInt(ramVal, 10),
                 instance: instanceVal,
                 profile: profileVal
             };
-            if (versionVal) pendingGamePayload.version = versionVal;
+            
+            if (instanceVal === 'vanilla') {
+                const inputElem = document.getElementById('vanilla-version-input');
+                const rawVal = inputElem ? inputElem.value || 'latest' : 'latest';
+                payload.version = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
+            } else if (instanceVal === 'minevanced') {
+                const selectElem = document.getElementById('minevanced-version-select');
+                profileVal = selectElem ? selectElem.value : 'modded';
+                payload.profile = profileVal;
+            }
+            
+            pendingGamePayload = payload;
             
             ipcRenderer.send('register-offline', { username: user, password: pass });
         });
@@ -821,24 +821,24 @@
             // Store payload for later launch - build it correctly
             const ramVal = ramSlider ? ramSlider.value : 4;
             const instanceVal = activeInstanceId || 'minevanced';
-            let versionVal = null;
             let profileVal = '';
-            
-            if (instanceVal === 'vanilla') {
-                const inputElem = document.getElementById('vanilla-version-input');
-                const rawVal = inputElem ? inputElem.value || 'latest' : 'latest';
-                versionVal = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
-            } else if (instanceVal === 'minevanced') {
-                const selectElem = document.getElementById('minevanced-version-select');
-                profileVal = selectElem ? selectElem.value : 'modded';
-            }
-            
-            pendingGamePayload = {
+            const payload = {
                 ram: parseInt(ramVal, 10),
                 instance: instanceVal,
                 profile: profileVal
             };
-            if (versionVal) pendingGamePayload.version = versionVal;
+            
+            if (instanceVal === 'vanilla') {
+                const inputElem = document.getElementById('vanilla-version-input');
+                const rawVal = inputElem ? inputElem.value || 'latest' : 'latest';
+                payload.version = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
+            } else if (instanceVal === 'minevanced') {
+                const selectElem = document.getElementById('minevanced-version-select');
+                profileVal = selectElem ? selectElem.value : 'modded';
+                payload.profile = profileVal;
+            }
+            
+            pendingGamePayload = payload;
             
             ipcRenderer.send('login-offline', { username: user, password: pass });
         });
@@ -922,15 +922,10 @@
 
             // Gather exact selected version profiles
             const allocatedRam = ramSlider.value;
-            let selectedVersion = 'latest';
             let selectedProfile = '';
 
-            if (activeInstanceId === 'vanilla') {
-                const rawVal = document.getElementById('vanilla-version-input').value || 'latest';
-                selectedVersion = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
-            } else if (activeInstanceId === 'minevanced') {
+            if (activeInstanceId === 'minevanced') {
                 selectedProfile = document.getElementById('minevanced-version-select').value;
-                selectedVersion = null;
             }
 
             const payload = {
@@ -938,7 +933,12 @@
                 instance: activeInstanceId,
                 profile: selectedProfile
             };
-            if (selectedVersion) payload.version = selectedVersion;
+
+            // Only Vanilla should override the manifest version from the selector.
+            if (activeInstanceId === 'vanilla') {
+                const rawVal = document.getElementById('vanilla-version-input').value || 'latest';
+                payload.version = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
+            }
 
             launchGame(payload);
         });
@@ -995,6 +995,12 @@
                     }
                 }, delayMs);
             }
+        });
+
+        ipcRenderer.on('launch-error', (event, payload) => {
+            const title = payload && payload.title ? payload.title : 'Launch Error';
+            const message = payload && payload.message ? payload.message : 'An unexpected launch error occurred.';
+            showCustomAlert(title, message);
         });
 
         // --- GAME LOGS LOGIC ---
