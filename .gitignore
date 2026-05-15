@@ -5,3 +5,4 @@ dist
 package-lock.json
 manifests/dummy.json
 user.json
+modpacks

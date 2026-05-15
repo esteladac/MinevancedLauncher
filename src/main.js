@@ -12,6 +12,339 @@ fs.writeFileSync(logPath, '--- Minevanced Boot Trace (High Precision) ---\n');
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 
+// --- Crash Handling System ---
+let crashLogPath = null;
+let crashWindow = null;
+let gameOutputLog = []; // Store game output for crash analysis
+const MAX_OUTPUT_LINES = 1000;
+
+function getCrashLogsDir() {
+    const dir = path.join(app.getPath('appData'), 'minevanced_launcher', 'crash_logs');
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    return dir;
+}
+
+function parseDependencyErrors(output) {
+    const depErrors = [];
+    const depPattern = /Mod ID: '([^']+)',\s*Requested by: '([^']+)',\s*Expected range: '([^']+)',\s*Actual version: '([^']+)'/g;
+    let match;
+    while ((match = depPattern.exec(output)) !== null) {
+        depErrors.push({
+            modId: match[1],
+            requestedBy: match[2],
+            expectedRange: match[3],
+            actualVersion: match[4]
+        });
+    }
+    return depErrors;
+}
+
+function writeCrashLog(errorType, errorMessage, stack, context = {}) {
+    try {
+        const timestamp = new Date().toISOString();
+        const filename = `crash-${Date.now()}.json`;
+        const crashLogsDir = getCrashLogsDir();
+        crashLogPath = path.join(crashLogsDir, filename);
+        
+        // Parse dependency errors from output if present
+        const fullOutput = gameOutputLog.join('\n');
+        const dependencyErrors = parseDependencyErrors(fullOutput);
+        
+        // Detect if this is a NeoForge dependency error
+        let isNeoForgeDependencyError = false;
+        if (fullOutput.includes('Missing or unsupported mandatory dependencies') && 
+            fullOutput.includes('neoforge')) {
+            isNeoForgeDependencyError = true;
+        }
+        
+        const crashData = {
+            timestamp,
+            type: errorType,
+            message: errorMessage,
+            stack: stack || 'No stack trace available',
+            context,
+            platform: process.platform,
+            arch: process.arch,
+            nodeVersion: process.version,
+            electronVersion: process.versions.electron,
+            appVersion: app.getVersion ? app.getVersion() : 'unknown',
+            isDependencyError: isNeoForgeDependencyError || dependencyErrors.length > 0,
+            dependencyErrors,
+            gameOutput: gameOutputLog.slice(-100) // Last 100 lines for context
+        };
+        
+        fs.writeFileSync(crashLogPath, JSON.stringify(crashData, null, 2));
+        console.error(`[CRASH] Logged to ${crashLogPath}`);
+        return crashLogPath;
+    } catch (e) {
+        console.error('[CRASH] Failed to write crash log:', e);
+        return null;
+    }
+}
+
+function showCrashWindow(errorType, errorMessage, stack) {
+    try {
+        if (crashWindow && !crashWindow.isDestroyed()) {
+            crashWindow.focus();
+            return;
+        }
+        
+        crashWindow = new BrowserWindow({
+            width: 700,
+            height: 600,
+            frame: false,
+            icon: path.join(__dirname, 'logo.png'),
+            resizable: true,
+            show: false,
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false
+            }
+        });
+        
+        const crashHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Minevanced - Crash Report</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                :root {
+                    --bg-dark: #121016;
+                    --module-bg: rgba(25, 20, 30, 0.72);
+                    --accent-purple: #7B52F4;
+                    --text-main: #FFFFFF;
+                    --text-dim: #A09DA5;
+                }
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background: radial-gradient(circle at top, rgba(123, 82, 244, 0.18) 0%, #08060c 52%, #050409 100%);
+                    color: var(--text-main);
+                    display: flex;
+                    flex-direction: column;
+                    height: 100vh;
+                    padding: 0;
+                    overflow: hidden;
+                }
+                .title-bar {
+                    background: rgba(18, 16, 22, 0.9);
+                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                    padding: 12px 18px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    user-select: none;
+                    -webkit-user-select: none;
+                    -webkit-app-region: drag;
+                }
+                .title-bar h2 {
+                    font-size: 14px;
+                    font-weight: 600;
+                    letter-spacing: 0.5px;
+                    color: var(--text-main);
+                }
+                .title-controls {
+                    display: flex;
+                    gap: 8px;
+                    -webkit-app-region: no-drag;
+                }
+                .title-controls button {
+                    background: rgba(255,255,255,0.05);
+                    border: 1px solid rgba(255,255,255,0.08);
+                    color: var(--text-main);
+                    cursor: pointer;
+                    padding: 6px 12px;
+                    font-size: 16px;
+                    border-radius: 999px;
+                    transition: 0.2s;
+                }
+                .title-controls button:hover {
+                    background: rgba(255,255,255,0.12);
+                }
+                .crash-content {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    padding: 18px;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                    min-height: 0;
+                }
+                .crash-header {
+                    text-align: center;
+                    margin-bottom: 16px;
+                }
+                .crash-header .icon {
+                    font-size: 46px;
+                    margin-bottom: 8px;
+                }
+                .crash-header h1 {
+                    font-size: 20px;
+                    color: #ff6b6b;
+                    margin-bottom: 8px;
+                }
+                .crash-header p {
+                    color: var(--text-dim);
+                    font-size: 13px;
+                }
+                .error-info {
+                    background: var(--module-bg);
+                    border: 1px solid rgba(255,107,107,0.22);
+                    border-radius: 14px;
+                    padding: 14px;
+                    margin-bottom: 14px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+                }
+                .error-type {
+                    font-weight: 600;
+                    color: #ff6b6b;
+                    font-size: 12px;
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .error-message {
+                    color: var(--text-main);
+                    font-size: 13px;
+                    word-break: break-word;
+                    margin-bottom: 12px;
+                }
+                .stack-trace {
+                    flex: 1 1 auto;
+                    min-height: 220px;
+                    background: rgba(8, 6, 12, 0.95);
+                    border: 1px solid rgba(255,255,255,0.06);
+                    border-radius: 14px;
+                    padding: 14px;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                    font-family: Consolas, 'Courier New', monospace;
+                    font-size: 11px;
+                    color: #b7b3bf;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                    margin-bottom: 15px;
+                    min-height: 0;
+                }
+                .crash-content::-webkit-scrollbar,
+                .stack-trace::-webkit-scrollbar {
+                    width: 8px;
+                }
+                .crash-content::-webkit-scrollbar-track,
+                .stack-trace::-webkit-scrollbar-track {
+                    background: rgba(255,255,255,0.04);
+                    border-radius: 999px;
+                }
+                .crash-content::-webkit-scrollbar-thumb,
+                .stack-trace::-webkit-scrollbar-thumb {
+                    background: rgba(123, 82, 244, 0.55);
+                    border-radius: 999px;
+                    border: 2px solid rgba(8, 6, 12, 0.95);
+                }
+                .crash-content::-webkit-scrollbar-thumb:hover,
+                .stack-trace::-webkit-scrollbar-thumb:hover {
+                    background: rgba(157, 122, 255, 0.8);
+                }
+                .actions {
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                }
+                button {
+                    flex: 1;
+                    padding: 12px;
+                    border: none;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    font-size: 13px;
+                    cursor: pointer;
+                    transition: 0.2s;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    min-width: 0;
+                }
+                .btn-restart {
+                    background: linear-gradient(135deg, #7b52f4, #9d7aff);
+                    color: white;
+                }
+                .btn-restart:hover {
+                    opacity: 0.9;
+                    transform: translateY(-1px);
+                }
+                .btn-close {
+                    background: rgba(255,255,255,0.08);
+                    color: var(--text-main);
+                    border: 1px solid rgba(255,255,255,0.16);
+                }
+                .btn-close:hover {
+                    background: rgba(255,255,255,0.14);
+                }
+            </style>
+        </head>
+        <body>
+            <div class="title-bar">
+                <h2>⚠️ Crash Report</h2>
+                <div class="title-controls">
+                    <button onclick="closeWindow()">✕</button>
+                </div>
+            </div>
+            <div class="crash-content">
+                <div class="crash-header">
+                    <div class="icon">🔥</div>
+                    <h1>Minevanced Crashed</h1>
+                    <p>An unexpected error occurred</p>
+                </div>
+                <div class="error-info">
+                    <div class="error-type" id="errorType"></div>
+                    <div class="error-message" id="errorMessage"></div>
+                </div>
+                <div class="stack-trace" id="stackTrace"></div>
+                <div class="actions">
+                    <button class="btn-restart" onclick="restartApp()">Restart Application</button>
+                    <button class="btn-close" onclick="closeWindow()">Close</button>
+                </div>
+            </div>
+            <script>
+                function closeWindow() {
+                    const { ipcRenderer } = require('electron');
+                    ipcRenderer.send('close-crash-window');
+                }
+                function restartApp() {
+                    const { ipcRenderer } = require('electron');
+                    ipcRenderer.send('restart-app');
+                }
+                const crashData = JSON.parse(decodeURIComponent(${JSON.stringify(encodeURIComponent(JSON.stringify({errorType, errorMessage, stack})))}));\n                document.getElementById('errorType').textContent = crashData.errorType || 'UNKNOWN ERROR';\n                document.getElementById('errorMessage').textContent = crashData.errorMessage || 'An unexpected error occurred';\n                document.getElementById('stackTrace').textContent = crashData.stack || 'No stack trace available';
+            </script>
+        </body>
+        </html>
+        `;
+        
+        crashWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(crashHTML));
+        crashWindow.once('ready-to-show', () => crashWindow.show());
+    } catch (err) {
+        console.error('[CRASH] Failed to show crash window:', err);
+    }
+}
+
+// Global uncaught exception handler (main process)
+process.on('uncaughtException', (error) => {
+    console.error('[UNCAUGHT EXCEPTION]', error);
+    writeCrashLog('UncaughtException', error.message, error.stack);
+    showCrashWindow('UNCAUGHT EXCEPTION', error.message, error.stack);
+});
+
+// Unhandled promise rejection handler
+process.on('unhandledRejection', (reason, promise) => {
+    const errorMessage = reason instanceof Error ? reason.message : String(reason);
+    const stack = reason instanceof Error ? reason.stack : 'No stack trace';
+    console.error('[UNHANDLED REJECTION]', reason);
+    writeCrashLog('UnhandledRejection', errorMessage, stack);
+    showCrashWindow('UNHANDLED PROMISE REJECTION', errorMessage, stack);
+});
+
 // --- Config (Save System) ---
 function getConfigPath() {
     return path.join(app.getPath('userData'), 'minevanced_config.json');
@@ -687,21 +1020,34 @@ ipcMain.on('request-modpacks', async (event) => {
             }
         }
 
-        // Read local invites
-        const localManifestDir = path.join(getLauncherDataPath(), 'manifests');
-        if (!fs.existsSync(localManifestDir)) fs.mkdirSync(localManifestDir, { recursive: true });
-
-        const localFiles = fs.readdirSync(localManifestDir);
-        for (const file of localFiles) {
-            if (file.startsWith('INVITE_') && file.endsWith('.json')) {
+        // Read locally-stored invite codes from config and fetch their manifests from server at runtime
+        try {
+            const conf = loadConfig();
+            const invites = conf.invites || {};
+            const fetch = (await import('node-fetch')).default;
+            for (const [inviteId, inviteCode] of Object.entries(invites)) {
                 try {
-                    const localData = JSON.parse(fs.readFileSync(path.join(localManifestDir, file), 'utf-8'));
-                    if (!onlinePacks.find(p => p.id === localData.id)) {
-                        localData.isOfficial = false; // explicitly mark as custom
-                        onlinePacks.push(localData);
+                    const r = await fetch('http://localhost:8080/invite/resolve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: inviteCode })
+                    });
+                    const d = await r.json().catch(() => ({}));
+                    if (d && d.success && d.manifest) {
+                        const localData = d.manifest;
+                        localData.inviteCode = inviteCode;
+                        localData.requiresInviteCode = true;
+                        localData.isOfficial = false;
+                        if (!onlinePacks.find(p => p.id === localData.id)) {
+                            onlinePacks.push(localData);
+                        }
                     }
-                } catch(e) {}
+                } catch (e) {
+                    console.error('Failed fetching invite manifest for', inviteId, e && e.message);
+                }
             }
+        } catch (e) {
+            // Non-fatal: continue without invite manifests if config/read fails
         }
 
         for (const folderName of ['manifests', 'modpacks']) {
@@ -760,15 +1106,18 @@ ipcMain.on('resolve-invite', async (event, code) => {
                 } catch (e) {}
             }
 
-            const localManifestDir = path.join(getLauncherDataPath(), 'manifests');
-            if (!fs.existsSync(localManifestDir)) fs.mkdirSync(localManifestDir, { recursive: true });
+            // Persist invite code in user config instead of writing the full manifest to disk.
+            // The launcher will fetch the manifest from the server at runtime using this code.
+            try {
+                const cfg = loadConfig();
+                cfg.invites = cfg.invites || {};
+                cfg.invites[manifest.id] = String(code);
+                saveConfig(cfg);
+            } catch (e) {
+                console.error('Failed to persist invite code to config:', e);
+            }
 
-            fs.writeFileSync(
-                path.join(localManifestDir, `INVITE_${manifest.id}.json`),
-                JSON.stringify(manifest, null, 4)
-            );
-
-            event.sender.send('invite-success', `Successfully added modpack: ${manifest.name}`);
+            event.sender.send('invite-success', `Invite accepted. Modpack '${manifest.name}' will be fetched from server when needed.`);
         } else {
             event.sender.send('invite-error', data.error || 'Invalid invite code.');
         }
@@ -778,21 +1127,76 @@ ipcMain.on('resolve-invite', async (event, code) => {
     }
 });
 
+function getProtectedModpackIds() {
+    const protectedIds = new Set(['vanilla', 'minevanced', 'minevanced-modded', 'minevanced-optimized']);
+
+    try {
+        const builtinPath = path.join(__dirname, '.builtin-packs.json');
+        if (fs.existsSync(builtinPath)) {
+            const builtins = JSON.parse(fs.readFileSync(builtinPath, 'utf-8'));
+            if (Array.isArray(builtins)) {
+                for (const pack of builtins) {
+                    if (pack && pack.id) {
+                        protectedIds.add(String(pack.id));
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Failed loading protected built-in pack IDs:', e);
+    }
+
+    return protectedIds;
+}
+
 ipcMain.on('delete-instance', (event, targetId) => {
     try {
+        const normalizedId = String(targetId || '').trim();
+        if (!normalizedId) {
+            event.sender.send('invite-error', 'Invalid modpack ID.');
+            return;
+        }
+
+        const protectedIds = getProtectedModpackIds();
+        if (protectedIds.has(normalizedId)) {
+            event.sender.send('invite-error', 'This built-in modpack cannot be deleted. Use Reinstall instead.');
+            return;
+        }
+
         const baseDir = getLauncherDataPath();
-        const instancePath = path.join(baseDir, 'instances', targetId);
+        const pathsToDelete = [
+            path.join(baseDir, normalizedId),
+            path.join(baseDir, 'instances', normalizedId),
+            path.join(baseDir, 'manifests', `${normalizedId}.json`),
+            path.join(baseDir, 'manifests', `INVITE_${normalizedId}.json`),
+            path.join(app.getAppPath(), 'manifests', `${normalizedId}.json`),
+            path.join(app.getAppPath(), 'manifests', `INVITE_${normalizedId}.json`),
+            path.join(app.getAppPath(), 'modpacks', `${normalizedId}.json`),
+            path.join(app.getAppPath(), 'modpacks', `INVITE_${normalizedId}.json`)
+        ];
 
-        if (fs.existsSync(instancePath)) {
-            fs.rmSync(instancePath, { recursive: true, force: true });
+        for (const targetPath of pathsToDelete) {
+            try {
+                if (fs.existsSync(targetPath)) {
+                    fs.rmSync(targetPath, { recursive: true, force: true });
+                }
+            } catch (removeErr) {
+                console.error('Failed removing path:', targetPath, removeErr);
+            }
         }
 
-        const manifestPath = path.join(baseDir, 'manifests', `INVITE_${targetId}.json`);
-        if (fs.existsSync(manifestPath)) {
-            fs.rmSync(manifestPath);
+        // Also remove stored invite code from config if present
+        try {
+            const cfg = loadConfig();
+            if (cfg.invites && cfg.invites[normalizedId]) {
+                delete cfg.invites[normalizedId];
+                saveConfig(cfg);
+            }
+        } catch (e) {
+            console.error('Failed to remove invite code from config during delete:', e);
         }
 
-        event.sender.send('invite-success', 'Instance files purged successfully.');
+        event.sender.send('invite-success', 'Modpack, instance files, and manifests deleted successfully.');
 
         // Re-trigger load
         ipcMain.emit('request-modpacks', event);
@@ -925,6 +1329,134 @@ let devModeActive = false; // The secret Developer Backdoor switch
 let devConfig = { bypassAuth: true, bypassAntiCheat: true }; // Controls specific overrides
 
 // --- DEVELOPER BACKDOOR ---
+// --- Crash Handling IPC ---
+ipcMain.on('close-crash-window', () => {
+    if (crashWindow && !crashWindow.isDestroyed()) {
+        crashWindow.close();
+        crashWindow = null;
+    }
+});
+
+ipcMain.on('restart-app', () => {
+    if (crashWindow && !crashWindow.isDestroyed()) {
+        crashWindow.close();
+    }
+    app.relaunch();
+    app.exit(0);
+});
+
+ipcMain.handle('get-crash-logs', async () => {
+    try {
+        const crashLogsDir = getCrashLogsDir();
+        if (!fs.existsSync(crashLogsDir)) return [];
+        
+        const files = fs.readdirSync(crashLogsDir)
+            .filter(f => f.startsWith('crash-') && f.endsWith('.json'))
+            .sort()
+            .reverse()
+            .slice(0, 20); // Latest 20 crashes
+        
+        return files.map(filename => {
+            const filepath = path.join(crashLogsDir, filename);
+            try {
+                const data = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+                return {
+                    filename,
+                    timestamp: data.timestamp,
+                    type: data.type,
+                    message: data.message,
+                    path: filepath
+                };
+            } catch (e) {
+                return { filename, error: 'Failed to parse' };
+            }
+        });
+    } catch (e) {
+        console.error('Failed to get crash logs:', e);
+        return [];
+    }
+});
+
+ipcMain.handle('get-crash-log-content', async (event, filepath) => {
+    try {
+        if (!filepath || !filepath.includes('crash-')) return null;
+        return fs.readFileSync(filepath, 'utf8');
+    } catch (e) {
+        console.error('Failed to read crash log:', e);
+        return null;
+    }
+});
+
+ipcMain.handle('send-crash-log-to-server', async (event, crashLogPath) => {
+    try {
+        if (!crashLogPath || !fs.existsSync(crashLogPath)) {
+            return { success: false, error: 'Crash log file not found' };
+        }
+        
+        const crashData = JSON.parse(fs.readFileSync(crashLogPath, 'utf8'));
+        const fetch = (await import('node-fetch')).default;
+        
+        const response = await fetch('http://localhost:8080/api/crash-logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                timestamp: crashData.timestamp,
+                type: crashData.type,
+                message: crashData.message,
+                stack: crashData.stack,
+                isDependencyError: crashData.isDependencyError,
+                dependencyErrors: crashData.dependencyErrors,
+                platform: crashData.platform,
+                arch: crashData.arch,
+                nodeVersion: crashData.nodeVersion,
+                electronVersion: crashData.electronVersion,
+                appVersion: crashData.appVersion,
+                gameOutput: crashData.gameOutput
+            })
+        });
+        
+        if (response.ok) {
+            return { success: true, message: 'Crash log sent to server' };
+        } else {
+            return { success: false, error: `Server error: ${response.status}` };
+        }
+    } catch (error) {
+        console.error('[CRASH LOG SEND ERROR]', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.on('delete-all-crash-logs', () => {
+    try {
+        const crashLogsDir = getCrashLogsDir();
+        if (fs.existsSync(crashLogsDir)) {
+            const files = fs.readdirSync(crashLogsDir);
+            files.forEach(file => {
+                if (file.startsWith('crash-') && file.endsWith('.json')) {
+                    try {
+                        fs.unlinkSync(path.join(crashLogsDir, file));
+                    } catch (e) {
+                        console.error('Failed to delete crash log file:', file, e);
+                    }
+                }
+            });
+            console.log('[CRASH] Deleted all crash logs');
+        }
+    } catch (e) {
+        console.error('[CRASH] Failed to delete crash logs:', e);
+    }
+});
+
+// Handle render process crashes
+app.on('render-process-gone', (event, details) => {
+    console.error('[RENDER PROCESS GONE]', details);
+    const reason = details.reason === 'killed' ? 'killed by OS' : details.reason;
+    writeCrashLog('RenderProcessGone', `Renderer crashed: ${reason}`, 'Render process terminated unexpectedly', details);
+    if (details.reason !== 'clean-exit') {
+        showCrashWindow('RENDERER CRASHED', `The UI process crashed: ${reason}`, '');
+    }
+});
+
 ipcMain.on('verify-dev-password', (event, pwd) => {
     // Hidden target hash computed mathematically against target plaintext "play.io2"
     const targetHash = "81862ebdd29ee6f84b06ff53adcb62e1cb0161e296c88ffdae190ec5eeb99937";
@@ -1199,6 +1731,10 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         const fetch = (await import('node-fetch')).default;
 
         let targetManifestUrl = `http://localhost:8080/manifests/files/${instanceName}.json`;
+        const inviteCode = configRequest && typeof configRequest.inviteCode === 'string' ? configRequest.inviteCode.trim() : '';
+        if (inviteCode) {
+            targetManifestUrl += `?code=${encodeURIComponent(inviteCode)}`;
+        }
         let manifestLoaded = false;
         // Removed verbose URL logging
 
@@ -1239,6 +1775,26 @@ ipcMain.on('launch-game', async (event, configRequest) => {
     } catch (err) {
         console.warn("Failed to load manifest. Entering fallback.", err.message);
         // Removed verbose manifest failure logging
+        // If this launch attempted to use an invite code, surface an invite-specific error.
+        const attemptedInviteCode = configRequest && typeof configRequest.inviteCode === 'string' ? String(configRequest.inviteCode).trim() : '';
+        if (!attemptedInviteCode) {
+            // No invite code supplied for a manifest that could require one
+            safeSend('update-status', 'Manifest access denied. Invite code required.');
+            safeSend('launch-error', {
+                title: 'Invite Code Required',
+                message: 'This modpack manifest requires a valid invite code. Add the invite code in the launcher and try again.'
+            });
+            return;
+        } else {
+            // An invite code was provided but manifest load still failed (likely invalid/expired)
+            safeSend('update-status', 'Manifest access denied. Invite code invalid or expired.');
+            safeSend('launch-error', {
+                title: 'Invite Code Invalid',
+                message: 'The invite code provided appears to be invalid or expired. Re-enter the invite code or contact the server administrator.'
+            });
+            return;
+        }
+
         safeSend('update-status', 'Manifest Load Failed - Fallback Version');
 
         // Artificial delay so the UI shows the "warning" message before jumping into the engine
@@ -1567,8 +2123,27 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         });
 
         launcher.on('data', (e) => {
+            // Store output for crash analysis
+            gameOutputLog.push(e);
+            if (gameOutputLog.length > MAX_OUTPUT_LINES) {
+                gameOutputLog.shift();
+            }
+            
             // Send logs to renderer
             safeSend('game-log', `[GAME] ${e}`);
+            
+            // Detect dependency errors in real-time
+            if (e.includes('Missing or unsupported mandatory dependencies')) {
+                const depErrors = parseDependencyErrors(e);
+                if (depErrors.length > 0) {
+                    console.error('[DEPENDENCY ERROR] Detected mod dependency conflicts:', depErrors);
+                    safeSend('dependency-error', {
+                        type: 'neoforge-version-mismatch',
+                        errors: depErrors,
+                        raw: e
+                    });
+                }
+            }
             
             // Only log important game output, not every line
             if (e.includes("Setting user:")) {
@@ -1609,10 +2184,30 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             } else {
                 safeSend('update-status', `Game closed unexpectedly (code ${exitCode}).`);
                 dbg('non-zero exit detected', { exitCode });
+                
+                // Log crash with output context
+                const fullOutput = gameOutputLog.join('\n');
+                const dependencyErrors = parseDependencyErrors(fullOutput);
+                if (dependencyErrors.length > 0 || fullOutput.includes('Missing or unsupported mandatory dependencies')) {
+                    const crashPath = writeCrashLog('GAME_CRASH_DEPENDENCY', `Game crashed with exit code ${exitCode}. Dependency errors detected.`, '', {
+                        exitCode,
+                        hasDependencyErrors: true,
+                        dependencyCount: dependencyErrors.length
+                    });
+                    // Send crash info to renderer with dependency details
+                    safeSend('game-crash-with-deps', {
+                        exitCode,
+                        dependencyErrors,
+                        crashLogPath: crashPath
+                    });
+                } else {
+                    writeCrashLog('GAME_CRASH', `Game crashed with exit code ${exitCode}.`, '', { exitCode });
+                }
             }
 
             safeSend('game-closed');
             activeGameProcess = null;
+            gameOutputLog = []; // Clear output log after game closes
         });
 
         activeGameProcess = await launcher.launch(opts);
