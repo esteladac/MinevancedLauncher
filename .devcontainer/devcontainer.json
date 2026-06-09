@@ -1,0 +1,19 @@
+{
+  "name": "Electron Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "version": "latest"
+    }
+  },
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "noVNC Desktop",
+      "onAutoForward": "notify"
+    }
+  },
+  "containerEnv": {
+    "DISPLAY": ":1"
+  }
+}
