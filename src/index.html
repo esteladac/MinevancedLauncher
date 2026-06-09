@@ -1023,7 +1023,10 @@
                 const defaultLang = ['en', 'fr'].includes(sysLang) ? sysLang : 'en';
                 
                 config.language = defaultLang;
-                ipcRenderer.send('save-config', { firstRun: false, language: defaultLang, hasAccount: false });
+                // Ensure the UI will select Minevanced immediately after onboarding finishes
+                initialConfigLoad = 'minevanced';
+                // Persist that the user should default to the Minevanced modpack after onboarding
+                ipcRenderer.send('save-config', { firstRun: false, language: defaultLang, hasAccount: false, lastInstance: 'minevanced' });
             }
 
             // Apply selected language (defaults to 'en' safely if not set yet on existing old configs)
