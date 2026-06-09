@@ -677,6 +677,52 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px
 .theme-switch input:checked + .switch-slider { background-color: var(--accent-purple); border-color: var(--accent-purple); }
 .theme-switch input:checked + .switch-slider:before { transform: translateX(22px); background-color: #fff; }
 
+/* --- THEMED CHECKBOX (Vanilla reinstall picker) --- */
+.theme-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    display: inline-grid;
+    place-content: center;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-checkbox:hover {
+    border-color: rgba(157, 122, 255, 0.9);
+    box-shadow: 0 0 0 3px rgba(123, 82, 244, 0.15);
+}
+
+.theme-checkbox::before {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0);
+    transform-origin: center;
+    transition: transform 0.15s ease;
+}
+
+.theme-checkbox:checked {
+    background: linear-gradient(135deg, var(--accent-purple), #9d7aff);
+    border-color: #b39bff;
+    box-shadow: 0 0 10px rgba(123, 82, 244, 0.45);
+}
+
+.theme-checkbox:checked::before {
+    transform: rotate(45deg) scale(1);
+}
+
+.theme-checkbox:focus-visible {
+    outline: 2px solid rgba(157, 122, 255, 0.7);
+    outline-offset: 2px;
+}
+
 /* --- MODPACK SELECTOR (CARDS) --- */
 .modpack-grid {
     display: flex;

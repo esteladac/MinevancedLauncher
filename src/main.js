@@ -409,18 +409,16 @@ function getRequiredJavaVersion(minecraftVersion) {
 async function getJavaPortable(minecraftVersion, dbgFunc) {
     const javaVersion = getRequiredJavaVersion(minecraftVersion);
     const javaDir = path.join(getLauncherDataPath(), 'java', `jdk-${javaVersion}`);
-    const javawPath = path.join(javaDir, 'bin', 'javaw.exe');
-    const javaExePath = path.join(javaDir, 'bin', 'java.exe');
-    const existingJavaPath = fs.existsSync(javawPath) ? javawPath : (fs.existsSync(javaExePath) ? javaExePath : null);
+    const isWindows = process.platform === 'win32';
+    const javaBinNames = isWindows ? ['javaw.exe', 'java.exe'] : ['java'];
+    const existingJavaPath = javaBinNames.map(b => path.join(javaDir, 'bin', b)).find(p => fs.existsSync(p)) || null;
     
     dbgFunc && dbgFunc('java portable check', {
         minecraftVersion,
         javaVersion,
-        javawPath,
-        javaExePath,
-        existingJavaPath,
-        javawExists: fs.existsSync(javawPath),
-        javaExeExists: fs.existsSync(javaExePath)
+        javaDir,
+        javaBinNames,
+        existingJavaPath
     });
     
     if (existingJavaPath) {
@@ -446,17 +444,17 @@ async function getJavaPortable(minecraftVersion, dbgFunc) {
     }
     
     // Download Java
-    const zipPath = path.join(javaBaseDir, `jdk-${javaVersion}.zip`);
-    dbgFunc && dbgFunc('starting java download', { zipPath });
-    
-    await downloadJavaFile(downloadUrl, zipPath, dbgFunc);
-    dbgFunc && dbgFunc('java download complete', zipPath);
-    
+    // Choose archive extension based on URL
+    const archiveExt = downloadUrl.endsWith('.zip') ? '.zip' : (downloadUrl.endsWith('.tar.gz') ? '.tar.gz' : path.extname(downloadUrl));
+    const archivePath = path.join(javaBaseDir, `jdk-${javaVersion}${archiveExt}`);
+    dbgFunc && dbgFunc('starting java download', { archivePath });
+
+    await downloadJavaFile(downloadUrl, archivePath, dbgFunc);
+    dbgFunc && dbgFunc('java download complete', archivePath);
+
     // Extract Java
-    const extract = require('extract-zip');
-    dbgFunc && dbgFunc('extracting java archive', { zipPath, targetDir: javaDir });
-    
     const tempExtractDir = path.join(javaBaseDir, `jdk-${javaVersion}-temp`);
+    dbgFunc && dbgFunc('extracting java archive', { archivePath, targetDir: tempExtractDir });
     
     try {
         // Clean up any previous temp extraction
@@ -464,7 +462,14 @@ async function getJavaPortable(minecraftVersion, dbgFunc) {
             fs.rmSync(tempExtractDir, { recursive: true, force: true });
         }
         
-        await extract(zipPath, { dir: tempExtractDir });
+        if (archiveExt === '.zip') {
+            const extract = require('extract-zip');
+            await extract(archivePath, { dir: tempExtractDir });
+        } else {
+            // Use tar for .tar.gz and other tar variants
+            const tar = require('tar');
+            await tar.x({ file: archivePath, C: tempExtractDir });
+        }
         dbgFunc && dbgFunc('java archive extracted to temp', tempExtractDir);
         
         // List extracted contents for debugging
@@ -491,13 +496,11 @@ async function getJavaPortable(minecraftVersion, dbgFunc) {
                     scannedDirs.push(current.dir);
                 }
                 
-                const candidateJavaw = path.join(current.dir, 'bin', 'javaw.exe');
-                const candidateJava = path.join(current.dir, 'bin', 'java.exe');
-                if (fs.existsSync(candidateJavaw)) {
-                    return { home: current.dir, binaryPath: candidateJavaw };
-                }
-                if (fs.existsSync(candidateJava)) {
-                    return { home: current.dir, binaryPath: candidateJava };
+                for (const binName of javaBinNames) {
+                    const candidate = path.join(current.dir, 'bin', binName);
+                    if (fs.existsSync(candidate)) {
+                        return { home: current.dir, binaryPath: candidate };
+                    }
                 }
                 
                 if (current.depth >= maxDepth) {
@@ -547,7 +550,7 @@ async function getJavaPortable(minecraftVersion, dbgFunc) {
         fs.renameSync(sourcePath, javaDir);
         
         // Verify the move worked
-        const installedJavaPath = fs.existsSync(javawPath) ? javawPath : (fs.existsSync(javaExePath) ? javaExePath : null);
+        const installedJavaPath = javaBinNames.map(b => path.join(javaDir, 'bin', b)).find(p => fs.existsSync(p)) || null;
         if (!installedJavaPath) {
             let dirContents = [];
             try {
@@ -558,6 +561,16 @@ async function getJavaPortable(minecraftVersion, dbgFunc) {
             throw new Error(`Java move/extraction failed. Expected ${javawPath} or ${javaExePath} but found: ${dirContents.join(', ')}`);
         }
         
+        // On Unix-like systems ensure the java binary is executable
+        try {
+            if (!isWindows && installedJavaPath) {
+                fs.chmodSync(installedJavaPath, 0o755);
+                dbgFunc && dbgFunc('set executable permission on java binary', installedJavaPath);
+            }
+        } catch (permErr) {
+            dbgFunc && dbgFunc('chmod failed', { error: permErr.message });
+        }
+
         dbgFunc && dbgFunc('java installation complete', { javaDir, javaPath: installedJavaPath });
         return installedJavaPath;
     } catch (err) {
@@ -604,25 +617,32 @@ async function getJavaDownloadUrl(javaVersion, dbgFunc) {
         const release = await response.json();
         
         const assets = release.assets || [];
-        const preferredAsset = assets.find(a =>
-            a.name.includes('OpenJDK') &&
-            a.name.includes('jdk_x64_windows_hotspot') &&
-            a.name.endsWith('.zip')
-        );
-        
+        const isWin = process.platform === 'win32';
+        const isLinux = process.platform === 'linux';
+
+        const preferredAsset = assets.find(a => {
+            const name = a.name.toLowerCase();
+            if (isWin) {
+                return name.includes('openjdk') && name.includes('jdk_x64_windows') && name.endsWith('.zip');
+            }
+            if (isLinux) {
+                return name.includes('openjdk') && name.includes('linux') && name.includes('x64') && (name.endsWith('.tar.gz') || name.endsWith('.tar'));
+            }
+            // Default to windows-style zip if unknown
+            return name.includes('openjdk') && name.includes('jdk') && name.endsWith('.zip');
+        });
+
         const fallbackAsset = assets.find(a => {
             const name = a.name.toLowerCase();
-            return name.includes('openjdk') &&
-                name.includes('windows') &&
-                name.includes('x64') &&
-                name.includes('jdk') &&
-                name.endsWith('.zip') &&
-                !name.includes('debugimage') &&
-                !name.includes('testimage') &&
-                !name.includes('static-libs') &&
-                !name.includes('sources');
+            if (isWin) {
+                return name.includes('openjdk') && name.includes('windows') && name.includes('x64') && name.includes('jdk') && name.endsWith('.zip') && !name.includes('debugimage') && !name.includes('testimage') && !name.includes('static-libs') && !name.includes('sources');
+            }
+            if (isLinux) {
+                return name.includes('openjdk') && name.includes('linux') && name.includes('x64') && name.includes('jdk') && (name.endsWith('.tar.gz') || name.endsWith('.tar')) && !name.includes('debugimage') && !name.includes('testimage') && !name.includes('static-libs') && !name.includes('sources');
+            }
+            return name.includes('openjdk') && name.includes('jdk') && name.endsWith('.zip') && !name.includes('debugimage');
         });
-        
+
         const asset = preferredAsset || fallbackAsset;
         
         if (!asset) {
@@ -1206,24 +1226,208 @@ ipcMain.on('delete-instance', (event, targetId) => {
     }
 });
 
+function listInstalledVersionsForInstance(instanceId) {
+    const normalizedId = String(instanceId || 'vanilla').trim().toLowerCase();
+    const baseDir = getLauncherDataPath();
+    const versionRoots = [
+        path.join(baseDir, normalizedId, 'versions'),
+        path.join(baseDir, 'instances', normalizedId, 'versions')
+    ];
+
+    const found = new Set();
+    for (const root of versionRoots) {
+        if (!fs.existsSync(root)) continue;
+        let entries = [];
+        try {
+            entries = fs.readdirSync(root, { withFileTypes: true });
+        } catch (_) {
+            entries = [];
+        }
+        for (const entry of entries) {
+            if (!entry || !entry.isDirectory || !entry.isDirectory()) continue;
+            const name = String(entry.name || '').trim();
+            if (!name) continue;
+            found.add(name);
+        }
+    }
+
+    return Array.from(found).sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+ipcMain.handle('get-installed-instance-versions', async (event, instanceId) => {
+    try {
+        return listInstalledVersionsForInstance(instanceId);
+    } catch (err) {
+        console.error('Failed to list installed instance versions:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('get-installed-vanilla-versions', async () => {
+    try {
+        return listInstalledVersionsForInstance('vanilla');
+    } catch (err) {
+        console.error('Failed to list installed vanilla versions:', err);
+        return [];
+    }
+});
+
+// Reinstall flow: remove only local instance data, keep manifest/list entry so it can be installed again.
+ipcMain.on('uninstall-instance', (event, targetPayload) => {
+    try {
+        const normalizedId = String((targetPayload && typeof targetPayload === 'object') ? targetPayload.id : targetPayload || '').trim();
+        if (!normalizedId) {
+            event.sender.send('invite-error', 'Invalid modpack ID.');
+            return;
+        }
+
+        const requestedVersions = (targetPayload && typeof targetPayload === 'object' && Array.isArray(targetPayload.versions))
+            ? targetPayload.versions
+                .map((v) => String(v || '').trim())
+                .filter((v) => v && /^[a-zA-Z0-9._-]+$/.test(v))
+            : [];
+        const removeWorlds = !!(targetPayload && typeof targetPayload === 'object' && targetPayload.removeWorlds);
+
+        const baseDir = getLauncherDataPath();
+        const instancePathsToDelete = [];
+
+        if (requestedVersions.length > 0) {
+            for (const version of requestedVersions) {
+                instancePathsToDelete.push(path.join(baseDir, normalizedId, 'versions', version));
+                instancePathsToDelete.push(path.join(baseDir, 'instances', normalizedId, 'versions', version));
+            }
+
+            if (removeWorlds) {
+                instancePathsToDelete.push(path.join(baseDir, normalizedId, 'saves'));
+                instancePathsToDelete.push(path.join(baseDir, 'instances', normalizedId, 'saves'));
+            }
+        } else {
+            instancePathsToDelete.push(path.join(baseDir, normalizedId));
+            instancePathsToDelete.push(path.join(baseDir, 'instances', normalizedId));
+        }
+
+        for (const targetPath of instancePathsToDelete) {
+            try {
+                if (fs.existsSync(targetPath)) {
+                    fs.rmSync(targetPath, { recursive: true, force: true });
+                }
+            } catch (removeErr) {
+                console.error('Failed removing instance path:', targetPath, removeErr);
+            }
+        }
+
+        if (requestedVersions.length > 0) {
+            const worldsMsg = removeWorlds ? ' Local worlds were also deleted.' : '';
+            event.sender.send('invite-success', `Removed ${requestedVersions.length} installed version(s) for ${normalizedId}.${worldsMsg} The modpack remains available to reinstall.`);
+        } else {
+            event.sender.send('invite-success', 'Local instance data removed. The modpack remains available to reinstall.');
+        }
+
+        // Re-trigger load to refresh UI state.
+        ipcMain.emit('request-modpacks', event);
+    } catch (err) {
+        console.error('Failed to uninstall instance:', err);
+        event.sender.send('invite-error', 'Failed to uninstall instance.');
+    }
+});
+
 // --- Authentication (MSMC & Offline) ---
 const msmc = require('msmc');
 const { Authenticator } = require('minecraft-launcher-core');
 const { shell } = require('electron');
+// Keep reference to any active msmc xboxManager to allow closing the auth window
+let _currentXboxManager = null;
 
 ipcMain.on('login-microsoft', async (event) => {
+    const TIMEOUT_MS = 60000; // 60s
+    let finished = false;
+    let timeoutId = null;
+
     try {
         const authManager = new msmc.Auth("select_account");
+
+        timeoutId = setTimeout(() => {
+            if (!finished) {
+                finished = true;
+                try {
+                    event.sender.send('auth-failed', 'Microsoft sign-in cancelled or timed out.');
+                } catch (_) {}
+            }
+        }, TIMEOUT_MS);
+
         const xboxManager = await authManager.launch("electron");
+        // store reference so other IPC calls can request the auth window to close
+        _currentXboxManager = xboxManager;
+        if (finished) {
+            // if timed out, attempt to close any window opened by msmc
+            try { if (xboxManager && typeof xboxManager.close === 'function') xboxManager.close(); } catch(_) {}
+            _currentXboxManager = null;
+            return; // timed out already
+        }
+
         const token = await xboxManager.getMinecraft();
+        if (finished) return; // timed out while waiting
+
+        finished = true;
+        if (timeoutId) clearTimeout(timeoutId);
+
         const mclcAuth = token.mclc(); // gets { access_token, client_token, uuid, name, ... }
 
+        // Try to close the auth window if msmc exposes a close method or window reference
+        try {
+            if (xboxManager) {
+                if (typeof xboxManager.close === 'function') {
+                    xboxManager.close();
+                } else if (xboxManager.window && typeof xboxManager.window.close === 'function') {
+                    xboxManager.window.close();
+                } else if (xboxManager.browserWindow && typeof xboxManager.browserWindow.close === 'function') {
+                    xboxManager.browserWindow.close();
+                }
+            }
+        } catch (closeErr) {
+            console.warn('Failed to auto-close auth window:', closeErr && closeErr.message);
+        }
+
+        // clear stored ref
+        _currentXboxManager = null;
+
         saveConfig({ authType: 'microsoft', authProfile: mclcAuth });
-        event.sender.send('auth-success', { type: 'microsoft', profile: mclcAuth });
+        try { event.sender.send('auth-success', { type: 'microsoft', profile: mclcAuth }); event.sender.send('close-auth-popup'); } catch (_) {}
     } catch (err) {
-        console.error("Microsoft Login Error:", err);
-        event.sender.send('auth-failed', err.message || "Failed to authenticate with Microsoft.");
+        if (!finished) {
+            finished = true;
+            if (timeoutId) clearTimeout(timeoutId);
+            console.error("Microsoft Login Error:", err);
+            try { event.sender.send('auth-failed', err.message || "Failed to authenticate with Microsoft."); } catch (_) {}
+            // ensure any msmc window is closed
+            try {
+                if (_currentXboxManager) {
+                    if (typeof _currentXboxManager.close === 'function') _currentXboxManager.close();
+                    else if (_currentXboxManager.window && typeof _currentXboxManager.window.close === 'function') _currentXboxManager.window.close();
+                    else if (_currentXboxManager.browserWindow && typeof _currentXboxManager.browserWindow.close === 'function') _currentXboxManager.browserWindow.close();
+                }
+            } catch (_) {}
+            _currentXboxManager = null;
+        } else {
+            console.warn('Microsoft login encountered error after timeout:', err && err.message);
+        }
     }
+});
+
+// Allow renderer to request the auth popup be closed (Back button)
+ipcMain.on('close-auth-window', (event) => {
+    try {
+        if (_currentXboxManager) {
+            if (typeof _currentXboxManager.close === 'function') _currentXboxManager.close();
+            else if (_currentXboxManager.window && typeof _currentXboxManager.window.close === 'function') _currentXboxManager.window.close();
+            else if (_currentXboxManager.browserWindow && typeof _currentXboxManager.browserWindow.close === 'function') _currentXboxManager.browserWindow.close();
+        }
+    } catch (err) {
+        console.warn('Failed to close auth window on request:', err && err.message);
+    }
+    // Notify renderer to hide any auth modal UI
+    try { event.sender.send('close-auth-popup'); } catch (_) {}
+    _currentXboxManager = null;
 });
 
 ipcMain.on('request-browser-link', (event) => {

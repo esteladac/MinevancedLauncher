@@ -176,6 +176,8 @@
                                     </label>
                                 </div>
                             </div>
+
+                            
                         </div>
                     </div>
 
@@ -266,14 +268,25 @@
                     <p style="color: var(--text-dim); margin-bottom: 25px;">You need a MinevancedAuth account to play. Create one now or log in with an existing account.</p>
                     
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; gap: 8px;">
+                                <div style="display: flex; gap: 8px;">
                             <input type="text" id="account-modal-user" placeholder="Username" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; flex: 1;">
                             <input type="password" id="account-modal-pass" placeholder="Password" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; flex: 1;">
                         </div>
-                        <div style="display: flex; gap: 10px;">
-                            <button class="play-btn" id="account-modal-register" style="flex: 1; background: var(--accent-purple); padding: 12px;">Register</button>
-                            <button class="play-btn" id="account-modal-login" style="flex: 1; background: rgba(255,255,255,0.1); padding: 12px;">Login</button>
-                        </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="play-btn" id="account-modal-register" style="flex: 1; background: var(--accent-purple); padding: 12px;">Register</button>
+                                    <button class="play-btn" id="account-modal-login" style="flex: 1; background: rgba(255,255,255,0.1); padding: 12px;">Login</button>
+                                </div>
+
+                                <!-- Microsoft Sign-in option for convenience on first-login -->
+                                <div style="margin-top: 10px; display: flex; justify-content: center;">
+                                    <div style="display:flex; gap:8px;">
+                                        <button class="play-btn" id="account-modal-ms-btn" style="padding: 10px 18px; font-size: 13px; background: #00a4ef; display:flex; gap:8px; align-items:center;">
+                                            <svg class="btn-icon" viewBox="0 0 24 24" style="width:16px;height:16px;opacity:0.95"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg>
+                                            Sign in with Microsoft
+                                        </button>
+                                        <button class="play-btn" id="account-modal-back-btn" style="padding: 10px 14px; font-size: 13px; background: rgba(255,255,255,0.06);">Back</button>
+                                    </div>
+                                </div>
                     </div>
                 </div>
             </div>
@@ -295,6 +308,25 @@
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
                         <button class="play-btn modal-btn" id="custom-confirm-ok" style="background: #e74c3c; flex: 1;">Delete</button>
                         <button class="play-btn modal-btn" id="custom-confirm-cancel" style="background: rgba(255,255,255,0.1); flex: 1;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vanilla Reinstall Picker Modal -->
+            <div id="vanilla-reinstall-modal" class="modal-overlay hidden" style="z-index: 2003;">
+                <div class="modal-content" style="max-width: 560px; width: 92vw; text-align: left;">
+                    <h3 style="margin-top: 0; color: #ffcc80;">Reinstall Vanilla Versions</h3>
+                    <p style="color: var(--text-dim); font-size: 13px; line-height: 1.5;">
+                        Warning: reinstall will delete selected installed Vanilla versions and <strong style="color:#ff8a80;">all local worlds (saves)</strong> for this instance before re-sync.
+                    </p>
+                    <div style="display:flex; justify-content: space-between; align-items:center; margin: 12px 0 8px 0;">
+                        <strong style="font-size: 13px; color: var(--text-main);">Installed versions</strong>
+                        <button class="play-btn" id="vanilla-reinstall-select-all" style="padding: 6px 10px; font-size: 11px; background: rgba(255,255,255,0.1);">Select All</button>
+                    </div>
+                    <div id="vanilla-reinstall-versions" style="max-height: 240px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px; background: rgba(0,0,0,0.2);"></div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                        <button class="play-btn modal-btn" id="vanilla-reinstall-cancel" style="background: rgba(255,255,255,0.1);">Back</button>
+                        <button class="play-btn modal-btn" id="vanilla-reinstall-confirm" style="background: #e74c3c;">Reinstall Selected</button>
                     </div>
                 </div>
             </div>
@@ -570,6 +602,86 @@
         document.getElementById('custom-confirm-cancel').addEventListener('click', () => {
             document.getElementById('custom-confirm').classList.add('hidden');
             if (confirmCallback) confirmCallback(false);
+        });
+
+        // --- VANILLA REINSTALL MODAL LOGIC ---
+        let pendingVanillaReinstallVersions = [];
+
+        function closeVanillaReinstallModal() {
+            document.getElementById('vanilla-reinstall-modal').classList.add('hidden');
+            pendingVanillaReinstallVersions = [];
+            const list = document.getElementById('vanilla-reinstall-versions');
+            if (list) list.innerHTML = '';
+        }
+
+        async function openReinstallPickerModal(instanceId, titleText, descriptionHtml, displayName) {
+            const list = document.getElementById('vanilla-reinstall-versions');
+            const confirmBtn = document.getElementById('vanilla-reinstall-confirm');
+            const modal = document.getElementById('vanilla-reinstall-modal');
+            const title = modal.querySelector('h3');
+            const description = modal.querySelector('p');
+
+            modal.dataset.instanceId = instanceId || 'vanilla';
+            modal.dataset.instanceDisplayName = displayName || (instanceId || 'instance');
+            if (title) title.innerText = titleText || 'Reinstall Versions';
+            if (description) description.innerHTML = descriptionHtml || 'Select the installed versions you want to reinstall.';
+
+            list.innerHTML = '<div style="color: var(--text-dim); font-size: 12px;">Loading installed versions...</div>';
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.6';
+            modal.classList.remove('hidden');
+
+            let versions = [];
+            try {
+                versions = await ipcRenderer.invoke('get-installed-instance-versions', modal.dataset.instanceId);
+            } catch (e) {
+                console.error('Failed loading installed vanilla versions:', e);
+                versions = [];
+            }
+
+            pendingVanillaReinstallVersions = Array.isArray(versions) ? versions : [];
+
+            if (!pendingVanillaReinstallVersions.length) {
+                list.innerHTML = '<div style="color: var(--text-dim); font-size: 12px;">No installed Vanilla versions were found.</div>';
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.6';
+                return;
+            }
+
+            list.innerHTML = pendingVanillaReinstallVersions.map((ver) => `
+                <label style="display:flex; align-items:center; gap:10px; padding: 7px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; color: var(--text-main); cursor: pointer;">
+                    <input type="checkbox" class="vanilla-reinstall-version theme-checkbox" value="${String(ver).replace(/"/g, '&quot;')}">
+                    <span>${ver}</span>
+                </label>
+            `).join('');
+
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+        }
+
+        document.getElementById('vanilla-reinstall-cancel').addEventListener('click', closeVanillaReinstallModal);
+
+        document.getElementById('vanilla-reinstall-select-all').addEventListener('click', () => {
+            const boxes = document.querySelectorAll('.vanilla-reinstall-version');
+            boxes.forEach((box) => { box.checked = true; });
+        });
+
+        document.getElementById('vanilla-reinstall-confirm').addEventListener('click', async () => {
+            const selected = Array.from(document.querySelectorAll('.vanilla-reinstall-version:checked')).map((el) => el.value);
+            if (!selected.length) {
+                showCustomAlert('Reinstall', 'Select at least one installed version.');
+                return;
+            }
+
+            const modal = document.getElementById('vanilla-reinstall-modal');
+            const instanceId = modal.dataset.instanceId || 'vanilla';
+            const displayName = modal.dataset.instanceDisplayName || 'selected instance';
+            const disclaimer = `This will delete ${selected.length} installed version(s) for ${displayName} and all local worlds (saves) before reinstall. Continue?`;
+            const confirmed = await showCustomConfirmAsync(`Confirm ${displayName} Reinstall`, disclaimer, 'Reinstall');
+            if (!confirmed) return;
+
+            ipcRenderer.send('uninstall-instance', { id: instanceId, versions: selected, removeWorlds: true });
+            closeVanillaReinstallModal();
         });
 
         // Window Controls
@@ -873,6 +985,31 @@
         
         // Request saved config on load
         let initialConfigLoad = null;
+        let hasConfigLoaded = false;
+        let hasModpacksRendered = false;
+        let hasAppliedInitialSelection = false;
+
+        function applyInitialModpackSelectionOnce() {
+            if (hasAppliedInitialSelection || !hasConfigLoaded || !hasModpacksRendered) return;
+            const container = document.getElementById('modpack-list-container');
+            if (!container) return;
+
+            const buttons = container.querySelectorAll('.modpack-action-btn');
+            if (!buttons || buttons.length === 0) return;
+
+            if (initialConfigLoad) {
+                const storedBtn = container.querySelector(`.modpack-action-btn[data-id="${initialConfigLoad}"]`);
+                if (storedBtn) {
+                    storedBtn.click();
+                    hasAppliedInitialSelection = true;
+                    return;
+                }
+            }
+
+            buttons[0].click();
+            hasAppliedInitialSelection = true;
+        }
+
         ipcRenderer.send('request-config');
         ipcRenderer.on('load-config', (event, config) => {
             // Load account status - only true if explicitly set to true
@@ -920,6 +1057,9 @@
             if (config.lastInstance) {
                 initialConfigLoad = config.lastInstance;
             }
+
+            hasConfigLoaded = true;
+            applyInitialModpackSelectionOnce();
         });
 
         ramSlider.addEventListener('input', (e) => {
@@ -1070,6 +1210,41 @@
             ipcRenderer.send('login-offline', { username: user, password: pass });
         });
 
+        // Microsoft Sign-in from Account Required modal
+        document.getElementById('account-modal-ms-btn').addEventListener('click', () => {
+            const btn = document.getElementById('account-modal-ms-btn');
+            btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s steps(8) infinite; width: 16px; height: 16px;"><circle cx="12" cy="3" r="2.5" opacity="1"/></svg> Connect...`;
+            btn.style.pointerEvents = 'none';
+            // Keep any pending game payload so that on auth-success the app can continue launching
+            ipcRenderer.send('login-microsoft');
+        });
+
+        // Back button in account modal - close popup and request main to close any external auth window
+        document.getElementById('account-modal-back-btn').addEventListener('click', () => {
+            // Hide modal for now
+            document.getElementById('account-required-modal').classList.add('hidden');
+            // Re-enable MS buttons immediately
+            try {
+                const acctBtn = document.getElementById('account-modal-ms-btn');
+                if (acctBtn) { acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Sign in with Microsoft`; acctBtn.style.pointerEvents = 'auto'; }
+                const topBtn = document.getElementById('login-ms-btn');
+                if (topBtn) { topBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`; topBtn.style.pointerEvents = 'auto'; }
+            } catch (e) {}
+            // Tell main to try to close any external auth window
+            ipcRenderer.send('close-auth-window');
+        });
+
+        // Close-auth-popup message from main: hide modal and reset buttons
+        ipcRenderer.on('close-auth-popup', () => {
+            try { document.getElementById('account-required-modal').classList.add('hidden'); } catch (_) {}
+            try {
+                const acctBtn = document.getElementById('account-modal-ms-btn');
+                if (acctBtn) { acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Sign in with Microsoft`; acctBtn.style.pointerEvents = 'auto'; }
+                const topBtn = document.getElementById('login-ms-btn');
+                if (topBtn) { topBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`; topBtn.style.pointerEvents = 'auto'; }
+            } catch (e) {}
+        });
+
         ipcRenderer.on('auth-success', (event, data) => {
             updateProfileUI(data.profile.name, data.type);
             hasAccount = true;
@@ -1084,6 +1259,11 @@
             
             document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`;
             document.getElementById('login-ms-btn').style.pointerEvents = "auto";
+            const acctBtn = document.getElementById('account-modal-ms-btn');
+            if (acctBtn) {
+                acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Sign in with Microsoft`;
+                acctBtn.style.pointerEvents = 'auto';
+            }
             
             // If there's a pending game launch, execute it now
             if (pendingGamePayload) {
@@ -1097,6 +1277,11 @@
             showCustomAlert("Authentication Failed", error);
             document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`;
             document.getElementById('login-ms-btn').style.pointerEvents = "auto";
+            const acctBtn = document.getElementById('account-modal-ms-btn');
+            if (acctBtn) {
+                acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Sign in with Microsoft`;
+                acctBtn.style.pointerEvents = 'auto';
+            }
         });
 
         ipcRenderer.on('register-success', (event, message) => {
@@ -1567,23 +1752,31 @@
                         const vanillaSelector = document.getElementById('vanilla-selector');
                         const minevancedSelector = document.getElementById('minevanced-selector');
                         
+                        const isMinevancedPack = ['minevanced', 'minevanced-modded', 'minevanced-optimized'].includes(String(targetId).toLowerCase());
+
                         if (targetId === 'vanilla') {
                               vsContainer.style.display = 'block';
                               vanillaSelector.style.display = 'flex';
                               minevancedSelector.style.display = 'none';        
                               document.querySelector('.modpack-desc').removeAttribute('data-translate');
                               document.querySelector('.modpack-desc').innerText = descText;
-                          } else if (targetId === 'minevanced') {
+                          } else if (isMinevancedPack) {
                               vsContainer.style.display = 'block';
                               minevancedSelector.style.display = 'flex';        
                               vanillaSelector.style.display = 'none';
-                              // Ensure "Modded" is the default when switching to Minevanced pack
-                              document.getElementById('minevanced-version-select').value = 'modded';
+
+                              // Default the selector to match the clicked Minevanced variant.
+                              const minevancedProfile = targetId === 'minevanced-optimized' ? 'optimized' : 'modded';
+                              document.getElementById('minevanced-version-select').value = minevancedProfile;
                               if (document.getElementById('minevanced-version-display')) {
-                                  document.getElementById('minevanced-version-display').innerText = currentLanguageData['home.modded'] || 'Modded';
+                                  document.getElementById('minevanced-version-display').innerText = minevancedProfile === 'optimized'
+                                      ? (currentLanguageData['home.optimized'] || 'Optimised')
+                                      : (currentLanguageData['home.modded'] || 'Modded');
                               }
-                              document.querySelector('.modpack-desc').setAttribute('data-translate', 'home.heroDescModded');
-                              document.querySelector('.modpack-desc').innerText = currentLanguageData['home.heroDescModded'] || '';
+                              document.querySelector('.modpack-desc').setAttribute('data-translate', minevancedProfile === 'optimized' ? 'home.heroDescOptimized' : 'home.heroDescModded');
+                              document.querySelector('.modpack-desc').innerText = minevancedProfile === 'optimized'
+                                  ? (currentLanguageData['home.heroDescOptimized'] || 'A lightweight performance-focused Minevanced setup.')
+                                  : (currentLanguageData['home.heroDescModded'] || 'A highly optimized vanilla survival experience on the latest version of Minecraft.');
                           } else {
                               vsContainer.style.display = 'none';
                               document.querySelector('.modpack-desc').removeAttribute('data-translate');
@@ -1619,11 +1812,38 @@
                 container.querySelectorAll('.modpack-reinstall-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const targetId = e.currentTarget.getAttribute('data-id');
-                          showCustomConfirm('Reinstall Instance', 'Reinstalling will purge the existing local instance folder and sync freshly from the server on the next launch. Proceed?', 'Reinstall', (confirmed) => {
-                              if (confirmed) {
-                                  ipcRenderer.send('delete-instance', targetId);
-                              }
-                          });
+                        const normalizedId = String(targetId || '').toLowerCase();
+                        if (normalizedId === 'vanilla') {
+                            openReinstallPickerModal(
+                                'vanilla',
+                                'Reinstall Vanilla Versions',
+                                'Warning: reinstall will delete selected installed Vanilla versions and <strong style="color:#ff8a80;">all local worlds (saves)</strong> for this instance before re-sync.',
+                                'Vanilla'
+                            );
+                            return;
+                        }
+
+                        if (normalizedId === 'minevanced' || normalizedId === 'minevanced-modded' || normalizedId === 'minevanced-optimized') {
+                            const prettyName = normalizedId === 'minevanced-optimized' ? 'Minevanced (Optimised)' : 'Minevanced';
+                            openReinstallPickerModal(
+                                normalizedId,
+                                `Reinstall ${prettyName} Versions`,
+                                `Warning: reinstall will delete selected installed ${prettyName} versions and <strong style="color:#ff8a80;">all local worlds (saves)</strong> for this instance before re-sync.`,
+                                prettyName
+                            );
+                            return;
+                        }
+
+                        showCustomConfirm(
+                            'Reinstall Instance',
+                            'Reinstalling will delete local instance files, including worlds/saves, then sync a fresh copy from the server on next launch. Proceed?',
+                            'Reinstall',
+                            (confirmed) => {
+                                if (confirmed) {
+                                    ipcRenderer.send('uninstall-instance', targetId);
+                                }
+                            }
+                        );
                       });
                   });
 
@@ -1636,16 +1856,8 @@
                               }
                           });                      });
                   });
-                // Auto select if config had a stored preference
-                if (initialConfigLoad) {
-                    const storedBtn = container.querySelector(`.modpack-action-btn[data-id="${initialConfigLoad}"]`);
-                    if (storedBtn) {
-                        storedBtn.click();
-                    }
-                } else if (buttons.length > 0) {
-                    // Force the very first one as default
-                    buttons[0].click();
-                }
+                hasModpacksRendered = true;
+                applyInitialModpackSelectionOnce();
             }
 
             // Re-apply manage mode after each list refresh so delete/reinstall buttons stay visible.
@@ -1656,16 +1868,8 @@
         window.addEventListener('DOMContentLoaded', () => {
             const initialBg = document.getElementById('home-bg-image');
             initialBg.dataset.loading = 'true';
-            const img = new Image();
-            img.onload = () => {
-                initialBg.style.backgroundImage = `url('https://minecraft.wiki/images/Plains.png?38132')`;
-                initialBg.dataset.loading = 'false';
-                // Only fade in if we are actually currently on the Home view
-                if (document.getElementById('view-home').classList.contains('active')) {
-                    initialBg.style.opacity = '0.4';
-                }
-            };
-            img.src = 'https://minecraft.wiki/images/Plains.png?38132';
+            // Avoid startup flash: don't load a temporary fallback image before selected modpack background is ready.
+            initialBg.style.opacity = '0';
 
             // Custom Dropdown Logic
             function setupDropdown(dropdownId, inputId, optionsId, displayId, hiddenInputId) {
