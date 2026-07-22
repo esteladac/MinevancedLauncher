@@ -1,17 +1,5 @@
 [
   {
-    "id": "vanilla",
-    "name": "Vanilla",
-    "version": "1.0.0",
-    "minecraftVersion": "latest",
-    "modLoader": "vanilla",
-    "modLoaderVersion": "latest",
-    "description": "Vanilla Minecraft experience with no mods, just the pure game as Mojang intended.",
-    "coverImage": "https://www.restart.run/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2Fwii1y9hm%2Fproduction%2F188e4867862c8c04f31192935f8d118bc1f6debb-1280x720.png%3Ffm%3Dwebp%26fit%3Dmax&w=2120&q=90",
-    "author": "Minevanced Team",
-    "mods": []
-  },
-  {
     "id": "minevanced",
     "name": "Minevanced",
     "version": "1.0.0",
@@ -23,6 +11,18 @@
     "author": "Minevanced Team",
     "mods": [],
     "files": []
+  },
+  {
+    "id": "vanilla",
+    "name": "Vanilla",
+    "version": "1.0.0",
+    "minecraftVersion": "latest",
+    "modLoader": "vanilla",
+    "modLoaderVersion": "latest",
+    "description": "Vanilla Minecraft experience with no mods, just the pure game as Mojang intended.",
+    "coverImage": "https://www.restart.run/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2Fwii1y9hm%2Fproduction%2F188e4867862c8c04f31192935f8d118bc1f6debb-1280x720.png%3Ffm%3Dwebp%26fit%3Dmax&w=2120&q=90",
+    "author": "Minevanced Team",
+    "mods": []
   },
   {
     "id": "minevanced-modded",

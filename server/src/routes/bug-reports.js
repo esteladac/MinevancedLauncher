@@ -93,7 +93,7 @@ router.get('/api/bug-reports/:id', requireAdmin, (req, res) => {
 router.patch('/api/bug-reports/:id', requireAdmin, (req, res) => {
     try {
         const { status } = req.body;
-        if (!status || !['new', 'reviewed', 'fixed', 'wontfix'].includes(status)) {
+        if (!status || !['new', 'reviewed', 'fixed', 'wontfix', 'archived'].includes(status)) {
             return res.status(400).json({ error: 'Invalid status value' });
         }
 
@@ -106,6 +106,19 @@ router.patch('/api/bug-reports/:id', requireAdmin, (req, res) => {
     } catch (error) {
         console.error('[BUG REPORT] Update error:', error);
         res.status(500).json({ error: 'Failed to update bug report' });
+    }
+});
+
+router.delete('/api/bug-reports/:id', requireAdmin, (req, res) => {
+    try {
+        const result = db.prepare('DELETE FROM bug_reports WHERE id = ?').run(req.params.id);
+        if (result.changes === 0) {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[BUG REPORT] Delete error:', error);
+        res.status(500).json({ error: 'Failed to delete bug report' });
     }
 });
 
