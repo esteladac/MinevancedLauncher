@@ -68,6 +68,55 @@ function initSchema() {
         CREATE INDEX IF NOT EXISTS idx_bug_reports_type ON bug_reports(type);
         CREATE INDEX IF NOT EXISTS idx_bug_reports_status ON bug_reports(status);
         CREATE INDEX IF NOT EXISTS idx_bug_reports_created ON bug_reports(created_at);
+
+        CREATE TABLE IF NOT EXISTS modpacks (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            pack_id         TEXT UNIQUE NOT NULL,
+            name            TEXT NOT NULL,
+            description     TEXT,
+            cover_image     TEXT,
+            minecraft_version TEXT NOT NULL,
+            mod_loader      TEXT NOT NULL,
+            loader_version  TEXT DEFAULT 'latest',
+            author          TEXT,
+            version         TEXT DEFAULT '1.0.0',
+            is_published    INTEGER DEFAULT 0,
+            is_builtin      INTEGER DEFAULT 0,
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS modpack_mods (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            modpack_id      INTEGER NOT NULL,
+            name            TEXT NOT NULL,
+            version         TEXT,
+            download_url    TEXT,
+            file_path       TEXT,
+            source          TEXT DEFAULT 'url',
+            source_id       TEXT,
+            hash            TEXT,
+            hash_algorithm  TEXT DEFAULT 'sha256',
+            sort_order      INTEGER DEFAULT 0,
+            FOREIGN KEY (modpack_id) REFERENCES modpacks(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS invite_codes (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            code            TEXT UNIQUE NOT NULL,
+            modpack_id      INTEGER NOT NULL,
+            is_active       INTEGER DEFAULT 1,
+            max_uses        INTEGER,
+            use_count       INTEGER DEFAULT 0,
+            created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (modpack_id) REFERENCES modpacks(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_modpacks_pack_id ON modpacks(pack_id);
+        CREATE INDEX IF NOT EXISTS idx_modpacks_builtin ON modpacks(is_builtin);
+        CREATE INDEX IF NOT EXISTS idx_invite_codes_code ON invite_codes(code);
+        CREATE INDEX IF NOT EXISTS idx_invite_codes_modpack ON invite_codes(modpack_id);
+        CREATE INDEX IF NOT EXISTS idx_modpack_mods_pack ON modpack_mods(modpack_id);
     `);
 }
 

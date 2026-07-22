@@ -1802,13 +1802,14 @@
                     const versionPrefixInfo = currentLanguageData['modpacks.versionPrefix'] || 'Version';
                     const modpackDescInfo = mp.description || (currentLanguageData['modpacks.customModpack'] || 'Custom Modpack.');
                     const selectBtnInfo = currentLanguageData['modpacks.select'] || 'Select';
+                    const updateBadge = mp.updateAvailable ? `<span style="display:inline-block;background:rgba(255,193,7,0.2);color:#ffc107;font-size:9px;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600;vertical-align:middle;">UPDATE</span>` : '';
 
                     card.innerHTML = `
                         <div class="modpack-card-bg" style="background-image: url('${mp.coverImage || 'https://launcher.mojang.com/api/launcher-ui/images/grass.png'}');"></div>
                         <div class="modpack-card-gradient"></div>
                         <div class="modpack-card-content">
                             <div class="modpack-card-info modpack-info-transition" style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-right: 20px;">
-                                <h3 style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">${mp.name}</h3>
+                                <h3 style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">${mp.name}${updateBadge}</h3>
                                 <p style="transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);"><span data-translate="modpacks.versionPrefix">${versionPrefixInfo}</span> ${mp.minecraftVersion} • ${modpackDescInfo}</p>
                             </div>
                             <div class="modpack-card-actions" style="display: flex; gap: 8px;">

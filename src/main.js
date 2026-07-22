@@ -1045,6 +1045,17 @@ ipcMain.on('save-config', (event, newConf) => {
     saveConfig(newConf);
 });
 
+ipcMain.on('mark-modpack-installed', (event, { packId, version }) => {
+    try {
+        const cfg = loadConfig();
+        cfg.installedModpackVersions = cfg.installedModpackVersions || {};
+        cfg.installedModpackVersions[packId] = version;
+        saveConfig(cfg);
+    } catch (e) {
+        console.error('Failed to mark modpack installed:', e);
+    }
+});
+
 ipcMain.on('logout', (event) => {
     const config = loadConfig();
     delete config.authType;
@@ -1177,6 +1188,23 @@ ipcMain.on('request-modpacks', async (event) => {
           }
 
           const filteredPacks = onlinePacks.filter(p => !p.hidden);
+
+        // Tag packs with update-available status
+        try {
+            const cfg = loadConfig();
+            const installedVersions = cfg.installedModpackVersions || {};
+            for (const pack of filteredPacks) {
+                const localVer = installedVersions[pack.id];
+                if (localVer && pack.version) {
+                    pack.updateAvailable = pack.version !== localVer;
+                    pack.installedVersion = localVer;
+                } else if (!localVer && pack.version) {
+                    pack.installedVersion = null;
+                    pack.updateAvailable = false;
+                }
+            }
+        } catch (_) {}
+
         event.sender.send('load-modpacks', filteredPacks);
     } catch (err) {
         console.error('Failed formatting packs:', err);
@@ -1288,13 +1316,16 @@ ipcMain.on('delete-instance', (event, targetId) => {
             }
         }
 
-        // Also remove stored invite code from config if present
+        // Also remove stored invite code and version tracking from config if present
         try {
             const cfg = loadConfig();
             if (cfg.invites && cfg.invites[normalizedId]) {
                 delete cfg.invites[normalizedId];
-                saveConfig(cfg);
             }
+            if (cfg.installedModpackVersions && cfg.installedModpackVersions[normalizedId]) {
+                delete cfg.installedModpackVersions[normalizedId];
+            }
+            saveConfig(cfg);
         } catch (e) {
             console.error('Failed to remove invite code from config during delete:', e);
         }
@@ -2352,6 +2383,16 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         safeSend('update-status', 'Warning: Sync Engine encountered an error.');
         await new Promise(r => setTimeout(r, 2000));
     }
+
+    // Mark modpack version as installed after successful sync
+    try {
+        if (manifest && manifest.version && manifest.id) {
+            const cfg = loadConfig();
+            cfg.installedModpackVersions = cfg.installedModpackVersions || {};
+            cfg.installedModpackVersions[manifest.id] = manifest.version;
+            saveConfig(cfg);
+        }
+    } catch (_) {}
 
     // Engine Launch happens strictly outside the Try/Catch block
     try {
