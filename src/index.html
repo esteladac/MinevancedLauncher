@@ -94,8 +94,8 @@
                                     <span style="font-size: 13px; color: var(--text-dim); text-shadow: 0 2px 4px rgba(0,0,0,0.5);" data-translate="home.modpackProfile">Modpack Profile:</span>
                                     <div class="custom-dropdown" id="minevanced-dropdown">
                                         <div class="custom-dropdown-header" id="minevanced-dropdown-header">
-                                            <span id="minevanced-version-display" style="flex: 1;" data-translate="home.modded">Modded</span>
-                                            <input type="hidden" id="minevanced-version-select" value="modded">
+                                            <span id="minevanced-version-display" style="flex: 1;" data-translate="home.optimized">Optimised</span>
+                                            <input type="hidden" id="minevanced-version-select" value="optimized">
                                             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0; pointer-events: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                         </div>
                                         <div class="custom-dropdown-list" id="minevanced-options">
@@ -148,7 +148,7 @@
                                     <p data-translate="settings.ramDesc">How much memory to give Minecraft. Higher is better for heavy modpacks.</p>
                                 </div>
                                 <div class="setting-control">
-                                    <strong id="ram-value-display">4 GB</strong>
+                                    <strong id="ram-value-display">Auto</strong>
                                     <input type="range" id="ram-slider" min="2" max="16" value="4" step="1">
                                 </div>
                             </div>
@@ -176,6 +176,30 @@
                                     </label>
                                 </div>
                             </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-translate="settings.autoSendReports">Auto-Send Crash Reports</h3>
+                                    <p data-translate="settings.autoSendReportsDesc">Automatically send anonymous crash data to help fix bugs. No personal info is included.</p>
+                                </div>
+                                <div class="setting-control" style="justify-content: flex-end;">
+                                    <label class="theme-switch">
+                                        <input type="checkbox" id="auto-send-reports-toggle" checked>
+                                        <span class="switch-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-translate="settings.reportBug">Report a Bug</h3>
+                                    <p data-translate="settings.reportBugDesc">Found something wrong? Send us a bug report with details about the issue.</p>
+                                </div>
+                                <div class="setting-control" style="justify-content: flex-end;">
+                                    <button class="play-btn" id="report-bug-btn" style="padding: 10px 20px; font-size: 12px; background: rgba(231, 76, 60, 0.2); border: 1px solid rgba(231, 76, 60, 0.4); color: #e74c3c;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 5px;"><path d="M8 2l1.88 1.88M14.12 3.88L16 2M9 7.13v-1a3.003 3.003 0 116 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 014-4h4a4 4 0 014 4v3c0 3.3-2.7 6-6 6z"/><path d="M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M6 17H2M18 13h4M18 17h4M20.97 5c0 2.1-1.6 3.8-3.5 4"/></svg>
+                                        Report Bug
+                                    </button>
+                                </div>
+                            </div>
 
                             
                         </div>
@@ -191,30 +215,31 @@
                             <div class="setting-item">
                                 <div class="setting-info">
                                     <h3 data-translate="auth.premium">Premium Account</h3>
-                                    <p data-translate="auth.premiumDesc">Log in securely using the official Microsoft Xbox live API.</p>
+                                    <p data-translate="auth.premiumDesc">Paid Minecraft account. Log in with your official Microsoft account for premium server access.</p>
                                 </div>
                                 <div class="setting-control" id="ms-control-area">
                                     <button class="play-btn" id="login-ms-btn" style="padding: 10px 20px; font-size: 12px; background: #00a4ef;">
-                                        <svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft
+                                        <svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Premium
                                     </button>
                                 </div>
                             </div>
                             <div class="setting-item">
                                 <div class="setting-info">
-                                    <h3 data-translate="auth.minevanced">MinevancedAuth</h3>
-                                    <p data-translate="auth.minevancedDesc">Secure offline connection. Only allowed on trusted local servers.</p>
+                                    <h3 data-translate="auth.discord">Discord Account</h3>
+                                    <p data-translate="auth.discordDesc">Free cracked account. Sign in with Discord — no Minecraft purchase required.</p>
                                 </div>
-                                <div class="setting-control" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
-                                    <div style="display: flex; gap: 5px;">
-                                        <input type="text" id="offline-user-input" placeholder="Username" data-translate-placeholder="auth.username" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
-                                        <input type="password" id="offline-pass-input" placeholder="Password" data-translate-placeholder="auth.password" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 20px; outline: none; width: 120px;">
-                                    </div>
-                                    <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
-                                        <button class="play-btn" id="login-offline-btn" style="padding: 10px 20px; font-size: 12px; background: #333;" data-translate="auth.loginBtn">Login</button>
-                                        <button class="play-btn" id="register-offline-btn" style="padding: 10px 20px; font-size: 12px; background: var(--accent-purple);" data-translate="auth.registerBtn">Register</button>
-                                    </div>
+                                <div class="setting-control" id="discord-control-area">
+                                    <button class="play-btn" id="login-discord-btn" style="padding: 10px 20px; font-size: 12px; background: #5865F2;">
+                                        <svg class="btn-icon" viewBox="0 0 256 199" style="fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg> Cracked
+                                    </button>
                                 </div>
                             </div>
+                        </div>
+                        <div style="margin-top: 12px; display: none;" id="logout-container">
+                            <button class="play-btn" id="logout-btn" style="width: 100%; padding: 12px; font-size: 13px; background: rgba(231, 76, 60, 0.2); border: 1px solid rgba(231, 76, 60, 0.4); color: #e74c3c; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                Log Out
+                            </button>
                         </div>
                     </div>
 
@@ -262,37 +287,42 @@
             </main>
             
             <!-- Account Required Modal (shown on first play attempt) -->
-            <div id="account-required-modal" class="modal-overlay hidden" style="z-index: 2000;">
+            <div id="account-required-modal" class="modal-overlay" style="z-index: 2000;">
                 <div class="modal-content" style="max-width: 400px; text-align: center;">
-                    <h3 style="color: var(--accent-purple); margin-top: 0; font-size: 20px; margin-bottom: 15px;">Create Minevanced Account</h3>
-                    <p style="color: var(--text-dim); margin-bottom: 25px;">You need a MinevancedAuth account to play. Create one now or log in with an existing account.</p>
+                    <h3 style="color: var(--accent-purple); margin-top: 0; font-size: 20px; margin-bottom: 15px;">Sign In Required</h3>
+                    <p style="color: var(--text-dim); margin-bottom: 25px;">You need an account to play. Choose a login method:</p>
                     
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                                <div style="display: flex; gap: 8px;">
-                            <input type="text" id="account-modal-user" placeholder="Username" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; flex: 1;">
-                            <input type="password" id="account-modal-pass" placeholder="Password" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 8px; outline: none; flex: 1;">
-                        </div>
-                                <div style="display: flex; gap: 10px;">
-                                    <button class="play-btn" id="account-modal-register" style="flex: 1; background: var(--accent-purple); padding: 12px;">Register</button>
-                                    <button class="play-btn" id="account-modal-login" style="flex: 1; background: rgba(255,255,255,0.1); padding: 12px;">Login</button>
-                                </div>
+                                <button class="play-btn" id="account-modal-discord-btn" style="width: 100%; background: #5865F2; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <svg class="btn-icon" viewBox="0 0 256 199" style="width:18px;height:18px;fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg>
+                                    <span>Cracked &mdash; Free</span>
+                                </button>
 
-                                <!-- Microsoft Sign-in option for convenience on first-login -->
-                                <div style="margin-top: 10px; display: flex; justify-content: center;">
-                                    <div style="display:flex; gap:8px;">
-                                        <button class="play-btn" id="account-modal-ms-btn" style="padding: 10px 18px; font-size: 13px; background: #00a4ef; display:flex; gap:8px; align-items:center;">
-                                            <svg class="btn-icon" viewBox="0 0 24 24" style="width:16px;height:16px;opacity:0.95"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg>
-                                            Sign in with Microsoft
-                                        </button>
-                                        <button class="play-btn" id="account-modal-back-btn" style="padding: 10px 14px; font-size: 13px; background: rgba(255,255,255,0.06);">Back</button>
-                                    </div>
-                                </div>
+                                <button class="play-btn" id="account-modal-ms-btn" style="width: 100%; background: #00a4ef; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <svg class="btn-icon" viewBox="0 0 23 23" style="width:16px;height:16px;opacity:0.95"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg>
+                                    <span>Premium &mdash; Microsoft</span>
+                                </button>
+
+                                <button class="play-btn" id="account-modal-back-btn" style="padding: 10px 14px; font-size: 13px; background: rgba(255,255,255,0.06);">Back</button>
                     </div>
                 </div>
             </div>
 
+            <!-- Discord Username Selection Modal -->
+            <div id="discord-username-modal" class="modal-overlay" style="z-index: 2100;">
+                <div class="modal-content" style="max-width: 400px; text-align: center;">
+                    <h3 style="color: var(--accent-purple); margin-top: 0; font-size: 20px; margin-bottom: 8px;">Choose Your Username</h3>
+                    <p style="color: var(--text-dim); margin-bottom: 6px;">This will be your Minecraft in-game name.</p>
+                    <p style="color: var(--text-dim); font-size: 11px; margin-bottom: 20px;">3-16 characters. Letters, numbers, underscores. Cannot be a premium Minecraft username.</p>
+                    
+                    <input type="text" id="discord-username-input" placeholder="Enter username..." maxlength="16" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 30px; outline: none; font-size: 14px; font-weight: bold; text-align: center; margin-bottom: 16px;">
+                    
+                    <button class="play-btn" id="confirm-discord-username-btn" style="width: 100%; background: var(--accent-purple); padding: 12px; font-size: 14px;">Confirm Username</button>
+                </div>
+            </div>
+
             <!-- Custom Themed Alert Modal -->
-            <div id="custom-alert" class="modal-overlay hidden" style="z-index: 2000;">
+            <div id="custom-alert" class="modal-overlay" style="z-index: 2200;">
                 <div class="modal-content">
                     <h3 id="custom-alert-title">Notice</h3>
                     <p id="custom-alert-message">This is an alert.</p>
@@ -301,7 +331,7 @@
             </div>
 
             <!-- Custom Themed Confirm Modal -->
-            <div id="custom-confirm" class="modal-overlay hidden" style="z-index: 2000;">
+            <div id="custom-confirm" class="modal-overlay" style="z-index: 2200;">
                 <div class="modal-content">
                     <h3 id="custom-confirm-title">Confirm</h3>
                     <p id="custom-confirm-message">Are you sure?</p>
@@ -313,7 +343,7 @@
             </div>
 
             <!-- Vanilla Reinstall Picker Modal -->
-            <div id="vanilla-reinstall-modal" class="modal-overlay hidden" style="z-index: 2003;">
+            <div id="vanilla-reinstall-modal" class="modal-overlay" style="z-index: 2003;">
                 <div class="modal-content" style="max-width: 560px; width: 92vw; text-align: left;">
                     <h3 style="margin-top: 0; color: #ffcc80;">Reinstall Vanilla Versions</h3>
                     <p style="color: var(--text-dim); font-size: 13px; line-height: 1.5;">
@@ -332,7 +362,7 @@
             </div>
 
             <!-- Game Logs Modal -->
-            <div id="game-logs-modal" class="modal-overlay hidden" style="z-index: 2000;">
+            <div id="game-logs-modal" class="modal-overlay" style="z-index: 2000;">
                 <div class="modal-content" style="max-width: 700px; width: 90vw; max-height: 70vh; display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
                         <h3 style="margin: 0; color: var(--accent-purple);">Game Logs</h3>
@@ -344,7 +374,7 @@
             </div>
 
             <!-- Onboarding Modal -->
-            <div id="onboarding-modal" class="modal-overlay hidden" style="z-index: 1500;">
+            <div id="onboarding-modal" class="modal-overlay" style="z-index: 1500;">
                 <div class="modal-content" style="max-width: 450px; text-align: center;">
                     <h2 style="color: var(--accent-purple); margin-top: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px;">MINEVANCED</h2>
                     <p style="color: var(--text-main); font-weight: 500; margin-bottom: 20px;" data-translate="onboarding.welcome">Welcome to the next generation of modpacks.</p>
@@ -362,7 +392,7 @@
             </div>
 
             <!-- Dev Password Modal -->
-            <div id="dev-password-modal" class="modal-overlay hidden">
+            <div id="dev-password-modal" class="modal-overlay">
                 <div class="modal-content">
                     <h3 style="color: #ff5555;">Developer Backdoor</h3>
                     <p>Enter the master override key.</p>
@@ -375,7 +405,7 @@
             </div>
 
             <!-- Dev Control Panel -->
-            <div id="dev-control-panel" class="modal-overlay hidden">
+            <div id="dev-control-panel" class="modal-overlay">
                 <div class="modal-content" style="max-width: 650px; width: 90vw; text-align: left;">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
                         <h3 style="margin: 0; color: #ff5555; display: flex; align-items: center; gap: 10px;">
@@ -435,7 +465,7 @@
             </div>
 
             <!-- Crash Logs Viewer Modal -->
-            <div id="crash-logs-modal" class="modal-overlay hidden" style="z-index: 2001;">
+            <div id="crash-logs-modal" class="modal-overlay" style="z-index: 2001;">
                 <div class="modal-content crash-modal-shell" style="background: linear-gradient(180deg, rgba(18, 16, 22, 0.98) 0%, rgba(10, 8, 15, 0.98) 100%);">
                     <div class="crash-modal-head">
                         <h3 class="crash-modal-title" style="color: #ff6b6b;">💥 Crash Logs</h3>
@@ -461,7 +491,7 @@
             </div>
             
             <!-- Dependency Error Modal -->
-            <div id="dependency-error-modal" class="modal-overlay hidden" style="z-index: 2002;">
+            <div id="dependency-error-modal" class="modal-overlay" style="z-index: 2002;">
                 <div class="modal-content crash-modal-shell crash-modal-danger">
                     <div class="crash-modal-head">
                         <h3 class="crash-modal-title" style="color: #ff6b6b;">
@@ -483,6 +513,34 @@
                     </div>
                     <div class="crash-modal-footer" style="justify-content: flex-end; padding-top: 0;">
                         <button class="play-btn" id="dep-error-send-log" style="padding: 10px 15px; background: rgba(123, 82, 244, 0.5); border: 1px solid rgba(123, 82, 244, 0.8); font-size: 12px;">📤 Send Log to Server</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bug Report Modal -->
+            <div id="bug-report-modal" class="modal-overlay" style="z-index: 2300;">
+                <div class="modal-content" style="max-width: 480px;">
+                    <h3 style="color: var(--accent-purple); margin-top: 0; font-size: 18px; margin-bottom: 5px;" data-translate="bugReport.title">Report a Bug</h3>
+                    <p style="color: var(--text-dim); font-size: 12px; margin-bottom: 15px;" data-translate="bugReport.subtitle">Describe the issue you encountered. System info will be included automatically.</p>
+
+                    <label style="color: var(--text-dim); font-size: 11px; display: block; margin-bottom: 4px;" data-translate="bugReport.titleLabel">Title</label>
+                    <input type="text" id="bug-report-title" placeholder="Brief summary of the issue..." maxlength="120" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 12px; border-radius: 8px; outline: none; font-size: 13px; margin-bottom: 12px;">
+
+                    <label style="color: var(--text-dim); font-size: 11px; display: block; margin-bottom: 4px;" data-translate="bugReport.descLabel">Description</label>
+                    <textarea id="bug-report-description" placeholder="What happened? What did you expect? Steps to reproduce..." rows="5" maxlength="2000" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 12px; border-radius: 8px; outline: none; font-size: 13px; margin-bottom: 12px; resize: vertical; font-family: inherit;"></textarea>
+
+                    <label style="display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 12px; cursor: pointer; margin-bottom: 18px;">
+                        <input type="checkbox" id="bug-report-include-logs" checked style="accent-color: var(--accent-purple);">
+                        <span data-translate="bugReport.includeLogs">Include recent game logs</span>
+                    </label>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="play-btn" id="bug-report-send" style="flex: 1; padding: 11px; font-size: 13px; background: var(--accent-purple);">
+                            <span data-translate="bugReport.send">Send Report</span>
+                        </button>
+                        <button class="play-btn" id="bug-report-cancel" style="flex: 1; padding: 11px; font-size: 13px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
+                            <span data-translate="bugReport.cancel">Cancel</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -557,7 +615,7 @@
         function showCustomAlert(title, message) {
             document.getElementById('custom-alert-title').innerText = title;
             document.getElementById('custom-alert-message').innerText = message;
-            document.getElementById('custom-alert').classList.remove('hidden');
+            document.getElementById('custom-alert').classList.add('visible');
         }
 
         let confirmCallback = null;
@@ -565,12 +623,12 @@
             document.getElementById('custom-confirm-title').innerText = title;
             document.getElementById('custom-confirm-message').innerText = message;
             document.getElementById('custom-confirm-ok').innerText = btnText || 'Confirm';
-            document.getElementById('custom-confirm').classList.remove('hidden');
+            document.getElementById('custom-confirm').classList.add('visible');
             confirmCallback = callback;
         }
 
         function hideCustomAlert() {
-            document.getElementById('custom-alert').classList.add('hidden');
+            document.getElementById('custom-alert').classList.remove('visible');
         }
 
         function showCustomAlertAsync(title, message) {
@@ -595,12 +653,12 @@
         });
 
         document.getElementById('custom-confirm-ok').addEventListener('click', () => {
-            document.getElementById('custom-confirm').classList.add('hidden');
+            document.getElementById('custom-confirm').classList.remove('visible');
             if (confirmCallback) confirmCallback(true);
         });
 
         document.getElementById('custom-confirm-cancel').addEventListener('click', () => {
-            document.getElementById('custom-confirm').classList.add('hidden');
+            document.getElementById('custom-confirm').classList.remove('visible');
             if (confirmCallback) confirmCallback(false);
         });
 
@@ -608,7 +666,7 @@
         let pendingVanillaReinstallVersions = [];
 
         function closeVanillaReinstallModal() {
-            document.getElementById('vanilla-reinstall-modal').classList.add('hidden');
+            document.getElementById('vanilla-reinstall-modal').classList.remove('visible');
             pendingVanillaReinstallVersions = [];
             const list = document.getElementById('vanilla-reinstall-versions');
             if (list) list.innerHTML = '';
@@ -629,7 +687,7 @@
             list.innerHTML = '<div style="color: var(--text-dim); font-size: 12px;">Loading installed versions...</div>';
             confirmBtn.disabled = true;
             confirmBtn.style.opacity = '0.6';
-            modal.classList.remove('hidden');
+            modal.classList.add('visible');
 
             let versions = [];
             try {
@@ -710,18 +768,18 @@
             if (e.key === '!') {
                 if (devModeUnlocked) {
                     e.preventDefault();
-                    document.getElementById('dev-control-panel').classList.remove('hidden');
+                    document.getElementById('dev-control-panel').classList.add('visible');
                     ipcRenderer.send('dev-request-logs');
                 } else if (document.getElementById('view-settings').classList.contains('active')) {
                     e.preventDefault(); // Stop the '!' character from immediately printing
-                    document.getElementById('dev-password-modal').classList.remove('hidden');
+                    document.getElementById('dev-password-modal').classList.add('visible');
                     document.getElementById('dev-password-input').focus();
                 }
             }
         });
 
         document.getElementById('dev-cancel-btn').addEventListener('click', () => {
-            document.getElementById('dev-password-modal').classList.add('hidden');
+            document.getElementById('dev-password-modal').classList.remove('visible');
             document.getElementById('dev-password-input').value = '';
         });
 
@@ -736,17 +794,17 @@
         });
 
         document.getElementById('dev-panel-close').addEventListener('click', () => {
-            document.getElementById('dev-control-panel').classList.add('hidden');
+            document.getElementById('dev-control-panel').classList.remove('visible');
         });
 
         ipcRenderer.on('dev-password-result', (event, success) => {
-            document.getElementById('dev-password-modal').classList.add('hidden');
+            document.getElementById('dev-password-modal').classList.remove('visible');
             document.getElementById('dev-password-input').value = '';
             if (success) {
                 devModeUnlocked = true;
                 
                 showCustomAlert("Developer Mode", "Terminal Override Authorized.");
-                document.getElementById('dev-control-panel').classList.remove('hidden');
+                document.getElementById('dev-control-panel').classList.add('visible');
                 ipcRenderer.send('dev-request-logs'); // Fetch initial logs
             } else {
                 showCustomAlert("Access Denied", "Invalid override key.");
@@ -768,11 +826,11 @@
 
         // --- NEW: DEV SETTINGS TOGGLES & INSTANCE BUILDER ---
         document.getElementById('dev-btn-show-onboarding').addEventListener('click', () => {
-            document.getElementById('dev-control-panel').classList.add('hidden');
-            document.getElementById('onboarding-modal').classList.remove('hidden');
+            document.getElementById('dev-control-panel').classList.remove('visible');
+            document.getElementById('onboarding-modal').classList.add('visible');
         });
         document.getElementById('onboarding-close-btn').addEventListener('click', () => {
-            document.getElementById('onboarding-modal').classList.add('hidden');
+            document.getElementById('onboarding-modal').classList.remove('visible');
         });
 
         document.getElementById('dev-toggle-auth').addEventListener('change', (e) => ipcRenderer.send('dev-update-settings', { bypassAuth: e.target.checked }));
@@ -870,19 +928,19 @@
         }
 
         document.getElementById('dev-btn-view-crashes').addEventListener('click', async () => {
-            document.getElementById('dev-control-panel').classList.add('hidden');
-            document.getElementById('crash-logs-modal').classList.remove('hidden');
+            document.getElementById('dev-control-panel').classList.remove('visible');
+            document.getElementById('crash-logs-modal').classList.add('visible');
             await loadCrashLogs();
         });
 
         document.getElementById('crash-logs-close').addEventListener('click', () => {
-            document.getElementById('crash-logs-modal').classList.add('hidden');
-            document.getElementById('dev-control-panel').classList.remove('hidden');
+            document.getElementById('crash-logs-modal').classList.remove('visible');
+            document.getElementById('dev-control-panel').classList.add('visible');
         });
 
         document.getElementById('crash-logs-close-btn').addEventListener('click', () => {
-            document.getElementById('crash-logs-modal').classList.add('hidden');
-            document.getElementById('dev-control-panel').classList.remove('hidden');
+            document.getElementById('crash-logs-modal').classList.remove('visible');
+            document.getElementById('dev-control-panel').classList.add('visible');
         });
 
         document.getElementById('crash-logs-refresh').addEventListener('click', async () => {
@@ -982,6 +1040,14 @@
         const ramDisplay = document.getElementById('ram-value-display');
         const debugToggle = document.getElementById('debug-splash-toggle');
         const snapshotsToggle = document.getElementById('snapshots-toggle');
+
+        // Set RAM slider max to system RAM, default to half
+        const os = require('os');
+        const totalRamGB = Math.floor(os.totalmem() / 1024 / 1024 / 1024);
+        const halfRamGB = Math.max(2, Math.floor(totalRamGB / 2));
+        ramSlider.max = totalRamGB;
+        ramSlider.value = halfRamGB;
+        ramDisplay.innerText = `${halfRamGB} GB`;
         
         // Request saved config on load
         let initialConfigLoad = null;
@@ -1016,7 +1082,7 @@
             hasAccount = config.hasAccount === true && config.authProfile && config.authProfile.name;
             
             if (config.firstRun !== false) {
-                document.getElementById('onboarding-modal').classList.remove('hidden');
+                document.getElementById('onboarding-modal').classList.add('visible');
                 
                 // Get system default language
                 const sysLang = navigator.language.split('-')[0]; // "en-US" -> "en", "fr-FR" -> "fr"
@@ -1044,6 +1110,10 @@
             }
             if (config.showSnapshots !== undefined) {
                 snapshotsToggle.checked = config.showSnapshots;
+            }
+            const autoSendToggle = document.getElementById('auto-send-reports-toggle');
+            if (config.autoSendCrashReports !== undefined) {
+                autoSendToggle.checked = config.autoSendCrashReports;
             }
             
             // Apply snapshot visibility rule right away
@@ -1094,13 +1164,71 @@
 
         });
 
+        document.getElementById('auto-send-reports-toggle').addEventListener('change', (e) => {
+            ipcRenderer.send('save-config', { autoSendCrashReports: e.target.checked });
+        });
+
+        // --- BUG REPORT MODAL ---
+        document.getElementById('report-bug-btn').addEventListener('click', () => {
+            document.getElementById('bug-report-title').value = '';
+            document.getElementById('bug-report-description').value = '';
+            document.getElementById('bug-report-include-logs').checked = true;
+            document.getElementById('bug-report-modal').classList.add('visible');
+        });
+
+        document.getElementById('bug-report-cancel').addEventListener('click', () => {
+            document.getElementById('bug-report-modal').classList.remove('visible');
+        });
+
+        document.getElementById('bug-report-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('bug-report-modal')) {
+                document.getElementById('bug-report-modal').classList.remove('visible');
+            }
+        });
+
+        document.getElementById('bug-report-send').addEventListener('click', async () => {
+            const title = document.getElementById('bug-report-title').value.trim();
+            const description = document.getElementById('bug-report-description').value.trim();
+            const includeLogs = document.getElementById('bug-report-include-logs').checked;
+
+            if (!title && !description) {
+                await showCustomAlertAsync('Report a Bug', 'Please provide a title or description for the bug report.');
+                return;
+            }
+
+            const sendBtn = document.getElementById('bug-report-send');
+            const origText = sendBtn.innerHTML;
+            sendBtn.innerHTML = '<span>Sending...</span>';
+            sendBtn.disabled = true;
+
+            try {
+                const result = await ipcRenderer.invoke('send-bug-report', { title, description, includeLogs });
+                if (result.success) {
+                    document.getElementById('bug-report-modal').classList.remove('visible');
+                    await showCustomAlertAsync('Report a Bug', 'Bug report sent successfully! Thank you for helping us improve.');
+                } else {
+                    await showCustomAlertAsync('Report a Bug', 'Failed to send report: ' + (result.error || 'Unknown error'));
+                }
+            } catch (err) {
+                await showCustomAlertAsync('Report a Bug', 'Error sending report: ' + err.message);
+            } finally {
+                sendBtn.innerHTML = origText;
+                sendBtn.disabled = false;
+            }
+        });
+
         // --- AUTHENTICATION LOGIC ---
         function updateProfileUI(name, type) {
             const profileModule = document.querySelector('.profile-module .status-text');
-            profileModule.innerHTML = `<strong>${name}</strong><small>${type === 'microsoft' ? 'Premium Account' : 'Offline Mode'}</small>`;
+            const typeLabel = type === 'microsoft' ? 'Premium Account' : type === 'discord' ? 'Discord Account' : 'Offline Mode';
+            profileModule.innerHTML = `<strong>${name}</strong><small>${typeLabel}</small>`;
             profileModule.className = 'status-text right-align';
             profileModule.style.alignItems = 'flex-end';
             const avatar = document.querySelector('.profile-module .avatar');
+            
+            // Show logout button
+            const logoutContainer = document.getElementById('logout-container');
+            if (logoutContainer) logoutContainer.style.display = 'block';
             
             // Fade effect for profile picture
             avatar.style.opacity = '0';
@@ -1123,6 +1251,24 @@
             }
         }
 
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            showCustomConfirmAsync('Log Out', 'Are you sure you want to log out?', 'Log Out').then(confirmed => {
+                if (!confirmed) return;
+                hasAccount = false;
+                ipcRenderer.send('logout');
+                const profileModule = document.querySelector('.profile-module .status-text');
+                profileModule.innerHTML = `<strong>Not Logged In</strong><small>Select an account</small>`;
+                const avatar = document.querySelector('.profile-module .avatar');
+                avatar.src = 'https://minotar.net/helm/MHF_Steve/40.png';
+                document.getElementById('logout-container').style.display = 'none';
+                document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Premium`;
+                document.getElementById('login-ms-btn').style.pointerEvents = 'auto';
+                document.getElementById('login-discord-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 256 199" style="fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg> Cracked`;
+                document.getElementById('login-discord-btn').style.pointerEvents = 'auto';
+                showCustomAlert('Logged Out', 'You have been logged out successfully.');
+            });
+        });
+
         document.getElementById('login-ms-btn').addEventListener('click', () => {
             const btn = document.getElementById('login-ms-btn');
             btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s steps(8) infinite; width: 16px; height: 16px;"><circle cx="12" cy="3" r="2.5" opacity="1"/><circle cx="18.36" cy="5.64" r="2.5" opacity="0.875"/><circle cx="21" cy="12" r="2.5" opacity="0.75"/><circle cx="18.36" cy="18.36" r="2.5" opacity="0.625"/><circle cx="12" cy="21" r="2.5" opacity="0.5"/><circle cx="5.64" cy="18.36" r="2.5" opacity="0.375"/><circle cx="3" cy="12" r="2.5" opacity="0.25"/><circle cx="5.64" cy="5.64" r="2.5" opacity="0.125"/></svg> Connect...`;
@@ -1130,108 +1276,70 @@
             ipcRenderer.send('login-microsoft');
         });
 
-        document.getElementById('login-offline-btn').addEventListener('click', () => {
-            const user = document.getElementById('offline-user-input').value;
-            const pass = document.getElementById('offline-pass-input').value;
-            if (!user || (!pass && pass !== '')) return showCustomAlert("Login Required", "Please enter your MinevancedAuth credentials before continuing.");
-            ipcRenderer.send('login-offline', { username: user, password: pass });
+        document.getElementById('login-discord-btn').addEventListener('click', () => {
+            const btn = document.getElementById('login-discord-btn');
+            btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s steps(8) infinite; width: 16px; height: 16px;"><circle cx="12" cy="3" r="2.5" opacity="1"/></svg> Connecting...`;
+            btn.style.pointerEvents = "none";
+            ipcRenderer.send('login-discord');
         });
 
-        document.getElementById('register-offline-btn').addEventListener('click', () => {
-            const user = document.getElementById('offline-user-input').value;
-            const pass = document.getElementById('offline-pass-input').value;
-            if (!user || (!pass && pass !== '')) return showCustomAlert("Registration Error", "Please enter both a username and a password to register.");
-            ipcRenderer.send('register-offline', { username: user, password: pass });
+        let _pendingDiscordToken = null;
+
+        ipcRenderer.on('discord-needs-username', (event, data) => {
+            _pendingDiscordToken = data.token;
+            document.getElementById('discord-username-modal').classList.add('visible');
+            document.getElementById('discord-username-input').focus();
         });
 
-        // Account Required Modal Listeners (shown on first play attempt)
-        document.getElementById('account-modal-register').addEventListener('click', () => {
-            const user = document.getElementById('account-modal-user').value.trim();
-            const pass = document.getElementById('account-modal-pass').value;
-            if (!user || !pass) return showCustomAlert("Registration Error", "Please enter both a username and a password to register.");
-            
-            // Store payload for later launch - build it correctly
-            const ramVal = ramSlider ? ramSlider.value : 4;
-            const instanceVal = activeInstanceId || 'minevanced';
-            let profileVal = '';
-            const payload = {
-                ram: parseInt(ramVal, 10),
-                instance: instanceVal,
-                profile: profileVal
-            };
-
-            if (activeInviteCode) {
-                payload.inviteCode = activeInviteCode;
-            }
-            
-            if (instanceVal === 'vanilla') {
-                const inputElem = document.getElementById('vanilla-version-input');
-                const rawVal = inputElem ? inputElem.value || 'latest' : 'latest';
-                payload.version = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
-            } else if (instanceVal === 'minevanced') {
-                const selectElem = document.getElementById('minevanced-version-select');
-                profileVal = selectElem ? selectElem.value : 'modded';
-                payload.profile = profileVal;
-            }
-            
-            pendingGamePayload = payload;
-            
-            ipcRenderer.send('register-offline', { username: user, password: pass });
+        document.getElementById('confirm-discord-username-btn').addEventListener('click', () => {
+            const username = document.getElementById('discord-username-input').value.trim();
+            if (!username) return showCustomAlert("Username Required", "Please enter a username.");
+            const btn = document.getElementById('confirm-discord-username-btn');
+            btn.textContent = 'Checking...';
+            btn.style.pointerEvents = 'none';
+            ipcRenderer.send('select-discord-username', { username, token: _pendingDiscordToken });
         });
 
-        document.getElementById('account-modal-login').addEventListener('click', () => {
-            const user = document.getElementById('account-modal-user').value.trim();
-            const pass = document.getElementById('account-modal-pass').value;
-            if (!user || !pass) return showCustomAlert("Login Error", "Please enter both a username and a password to login.");
-            
-            // Store payload for later launch - build it correctly
-            const ramVal = ramSlider ? ramSlider.value : 4;
-            const instanceVal = activeInstanceId || 'minevanced';
-            let profileVal = '';
-            const payload = {
-                ram: parseInt(ramVal, 10),
-                instance: instanceVal,
-                profile: profileVal
-            };
-
-            if (activeInviteCode) {
-                payload.inviteCode = activeInviteCode;
-            }
-            
-            if (instanceVal === 'vanilla') {
-                const inputElem = document.getElementById('vanilla-version-input');
-                const rawVal = inputElem ? inputElem.value || 'latest' : 'latest';
-                payload.version = rawVal.toLowerCase() === 'latest' ? 'latest' : rawVal;
-            } else if (instanceVal === 'minevanced') {
-                const selectElem = document.getElementById('minevanced-version-select');
-                profileVal = selectElem ? selectElem.value : 'modded';
-                payload.profile = profileVal;
-            }
-            
-            pendingGamePayload = payload;
-            
-            ipcRenderer.send('login-offline', { username: user, password: pass });
+        ipcRenderer.on('discord-username-error', (event, errorMsg) => {
+            const btn = document.getElementById('confirm-discord-username-btn');
+            btn.textContent = 'Confirm Username';
+            btn.style.pointerEvents = 'auto';
+            document.getElementById('discord-username-modal').classList.add('visible');
+            document.getElementById('discord-username-input').focus();
+            showCustomAlert('Username Error', errorMsg);
         });
 
-        // Microsoft Sign-in from Account Required modal
+        document.getElementById('discord-username-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('confirm-discord-username-btn').click();
+            }
+        });
+
+        // Account Required Modal - Discord Sign-in
+        document.getElementById('account-modal-discord-btn').addEventListener('click', () => {
+            const btn = document.getElementById('account-modal-discord-btn');
+            btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s steps(8) infinite; width: 16px; height: 16px;"><circle cx="12" cy="3" r="2.5" opacity="1"/></svg> Connecting...`;
+            btn.style.pointerEvents = 'none';
+            ipcRenderer.send('login-discord');
+        });
+
         document.getElementById('account-modal-ms-btn').addEventListener('click', () => {
             const btn = document.getElementById('account-modal-ms-btn');
             btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s steps(8) infinite; width: 16px; height: 16px;"><circle cx="12" cy="3" r="2.5" opacity="1"/></svg> Connect...`;
             btn.style.pointerEvents = 'none';
-            // Keep any pending game payload so that on auth-success the app can continue launching
             ipcRenderer.send('login-microsoft');
         });
 
         // Back button in account modal - close popup and request main to close any external auth window
         document.getElementById('account-modal-back-btn').addEventListener('click', () => {
             // Hide modal for now
-            document.getElementById('account-required-modal').classList.add('hidden');
+            document.getElementById('account-required-modal').classList.remove('visible');
             // Re-enable MS buttons immediately
             try {
                 const acctBtn = document.getElementById('account-modal-ms-btn');
-                if (acctBtn) { acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Sign in with Microsoft`; acctBtn.style.pointerEvents = 'auto'; }
+                if (acctBtn) { acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Sign in with Microsoft`; acctBtn.style.pointerEvents = 'auto'; }
                 const topBtn = document.getElementById('login-ms-btn');
-                if (topBtn) { topBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`; topBtn.style.pointerEvents = 'auto'; }
+                if (topBtn) { topBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Microsoft`; topBtn.style.pointerEvents = 'auto'; }
             } catch (e) {}
             // Tell main to try to close any external auth window
             ipcRenderer.send('close-auth-window');
@@ -1239,12 +1347,17 @@
 
         // Close-auth-popup message from main: hide modal and reset buttons
         ipcRenderer.on('close-auth-popup', () => {
-            try { document.getElementById('account-required-modal').classList.add('hidden'); } catch (_) {}
+            try { document.getElementById('account-required-modal').classList.remove('visible'); } catch (_) {}
+            try { document.getElementById('discord-username-modal').classList.remove('visible'); } catch (_) {}
             try {
                 const acctBtn = document.getElementById('account-modal-ms-btn');
-                if (acctBtn) { acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Sign in with Microsoft`; acctBtn.style.pointerEvents = 'auto'; }
+                if (acctBtn) { acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Sign in with Microsoft`; acctBtn.style.pointerEvents = 'auto'; }
                 const topBtn = document.getElementById('login-ms-btn');
-                if (topBtn) { topBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`; topBtn.style.pointerEvents = 'auto'; }
+                if (topBtn) { topBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Microsoft`; topBtn.style.pointerEvents = 'auto'; }
+                const discordBtn = document.getElementById('login-discord-btn');
+                if (discordBtn) { discordBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 256 199" style="fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg> Discord`; discordBtn.style.pointerEvents = 'auto'; }
+                const acctDiscordBtn = document.getElementById('account-modal-discord-btn');
+                if (acctDiscordBtn) { acctDiscordBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 256 199" style="width:18px;height:18px;fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg> Sign in with Discord`; acctDiscordBtn.style.pointerEvents = 'auto'; }
             } catch (e) {}
         });
 
@@ -1253,55 +1366,54 @@
             hasAccount = true;
             ipcRenderer.send('save-config', { hasAccount: true });
             
-            // Clear password field for security
-            if (document.getElementById('offline-pass-input')) {
-                document.getElementById('offline-pass-input').value = '';
-            }
-            
+            document.getElementById('discord-username-modal').classList.remove('visible');
+            document.getElementById('onboarding-modal').classList.remove('visible');
+            document.getElementById('discord-username-input').value = '';
+            const confirmBtn = document.getElementById('confirm-discord-username-btn');
+            confirmBtn.textContent = 'Confirm Username';
+            confirmBtn.style.pointerEvents = 'auto';
+
             showCustomAlert("Login Successful", `Welcome back, ${data.profile.name}!`);
             
-            document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`;
+            document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Microsoft`;
             document.getElementById('login-ms-btn').style.pointerEvents = "auto";
+            document.getElementById('login-discord-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 256 199" style="fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg> Discord`;
+            document.getElementById('login-discord-btn').style.pointerEvents = "auto";
             const acctBtn = document.getElementById('account-modal-ms-btn');
             if (acctBtn) {
-                acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Sign in with Microsoft`;
+                acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Sign in with Microsoft`;
                 acctBtn.style.pointerEvents = 'auto';
+            }
+            const acctDiscordBtn = document.getElementById('account-modal-discord-btn');
+            if (acctDiscordBtn) {
+                acctDiscordBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 256 199" style="width:18px;height:18px;fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg> Sign in with Discord`;
+                acctDiscordBtn.style.pointerEvents = 'auto';
             }
             
             // If there's a pending game launch, execute it now
             if (pendingGamePayload) {
                 setTimeout(() => launchGame(pendingGamePayload), 500);
                 pendingGamePayload = null;
-                document.getElementById('account-required-modal').classList.add('hidden');
+                document.getElementById('account-required-modal').classList.remove('visible');
             }
         });
 
         ipcRenderer.on('auth-failed', (event, error) => {
             showCustomAlert("Authentication Failed", error);
-            document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Microsoft`;
+            document.getElementById('login-ms-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Microsoft`;
             document.getElementById('login-ms-btn').style.pointerEvents = "auto";
+            document.getElementById('login-discord-btn').innerHTML = `<svg class="btn-icon" viewBox="0 0 256 199" style="fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg> Discord`;
+            document.getElementById('login-discord-btn').style.pointerEvents = "auto";
             const acctBtn = document.getElementById('account-modal-ms-btn');
             if (acctBtn) {
-                acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg> Sign in with Microsoft`;
+                acctBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 23 23"><rect x="0" y="0" width="11" height="11" fill="#f25022"/><rect x="12" y="0" width="11" height="11" fill="#7fba00"/><rect x="0" y="12" width="11" height="11" fill="#00a4ef"/><rect x="12" y="12" width="11" height="11" fill="#ffb900"/></svg> Sign in with Microsoft`;
                 acctBtn.style.pointerEvents = 'auto';
             }
-        });
-
-        ipcRenderer.on('register-success', (event, message) => {
-            hasAccount = true;
-            ipcRenderer.send('save-config', { hasAccount: true });
-            
-            showCustomAlert("Registration Complete!", message + "\nLogging you in automatically...");
-            
-            // Close the modal and auto-login if possible
-            setTimeout(() => {
-                document.getElementById('account-required-modal').classList.add('hidden');
-                // Refresh to show the new account is ready
-            }, 500);
-        });
-
-        ipcRenderer.on('register-failed', (event, error) => {
-            showCustomAlert("Registration Failed", error);
+            const acctDiscordBtn = document.getElementById('account-modal-discord-btn');
+            if (acctDiscordBtn) {
+                acctDiscordBtn.innerHTML = `<svg class="btn-icon" viewBox="0 0 256 199" style="width:18px;height:18px;fill: white;"><path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z"></path></svg> Sign in with Discord`;
+                acctDiscordBtn.style.pointerEvents = 'auto';
+            }
         });
 
         // --- ACCOUNT CHECK & PLAY LOGIC ---
@@ -1315,7 +1427,7 @@
             btn.style.opacity = "0.7";
             btn.style.pointerEvents = "none";
             btn.style.background = "var(--accent-purple)";
-            document.getElementById('download-tracker').classList.remove('hidden');
+            document.getElementById('download-tracker').classList.add('hidden');
             ipcRenderer.send('launch-game', payload);
         }
 
@@ -1331,7 +1443,7 @@
 
             // Check if user has an account before allowing launch
             if (!hasAccount) {
-                document.getElementById('account-required-modal').classList.remove('hidden');
+                document.getElementById('account-required-modal').classList.add('visible');
                 return;
             }
 
@@ -1443,7 +1555,7 @@
                 html += '</div>';
                 
                 errorsList.innerHTML = html;
-                modal.classList.remove('hidden');
+                modal.classList.add('visible');
             }
         });
 
@@ -1467,13 +1579,13 @@
                 html += '</div>';
                 
                 errorsList.innerHTML = html;
-                modal.classList.remove('hidden');
+                modal.classList.add('visible');
             }
         });
 
         // Dependency error modal close button
         document.getElementById('dep-error-close').addEventListener('click', () => {
-            document.getElementById('dependency-error-modal').classList.add('hidden');
+            document.getElementById('dependency-error-modal').classList.remove('visible');
         });
 
         // Send dependency error log to server
@@ -1482,7 +1594,7 @@
                 const result = await ipcRenderer.invoke('send-crash-log-to-server', lastCrashLogPath);
                 if (result.success) {
                     await showCustomAlertAsync('Crash Logs', 'Crash log sent to server successfully!');
-                    document.getElementById('dependency-error-modal').classList.add('hidden');
+                    document.getElementById('dependency-error-modal').classList.remove('visible');
                 } else {
                     await showCustomAlertAsync('Crash Logs', 'Failed to send log: ' + (result.error || 'Unknown error'));
                 }
@@ -1496,7 +1608,7 @@
 
         // Show logs modal
         document.getElementById('logs-btn').addEventListener('click', () => {
-            document.getElementById('game-logs-modal').classList.remove('hidden');
+            document.getElementById('game-logs-modal').classList.add('visible');
             document.getElementById('game-logs-content').innerText = gameLogs.join('\n');
             // Scroll to bottom
             document.getElementById('game-logs-content').scrollTop = document.getElementById('game-logs-content').scrollHeight;
@@ -1504,7 +1616,7 @@
 
         // Close logs modal
         document.getElementById('logs-close-btn').addEventListener('click', () => {
-            document.getElementById('game-logs-modal').classList.add('hidden');
+            document.getElementById('game-logs-modal').classList.remove('visible');
         });
 
         // Clear logs
@@ -1983,7 +2095,9 @@
                       if (descEl) {
                           const key = val === 'modded' ? 'home.heroDescModded' : 'home.heroDescOptimized';
                           descEl.setAttribute('data-translate', key);
-                          descEl.innerText = currentLanguageData[key] || '';
+                          descEl.innerText = currentLanguageData[key] || (val === 'modded'
+                              ? 'A highly optimized vanilla survival experience on the latest version of Minecraft. Experience the game exactly how we designed it.'
+                              : 'A lightweight performance-focused Minevanced setup for lower-end systems.');
                       }
                   });
               }

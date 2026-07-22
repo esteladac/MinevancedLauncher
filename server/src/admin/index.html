@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minevanced Admin</title>
+<style>
+:root {
+    --bg-dark: #121016;
+    --module-bg: rgba(25, 20, 30, 0.6);
+    --accent-purple: #7B52F4;
+    --text-main: #FFFFFF;
+    --text-dim: #A09DA5;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-main);
+    background: radial-gradient(circle at 50% 50%, #2a1b38 0%, #08060c 100%);
+    min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(123, 82, 244, 0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(123, 82, 244, 0.7); }
+
+#login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.login-box {
+    background: var(--module-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    width: 360px;
+    backdrop-filter: blur(12px);
+}
+
+.login-box h1 {
+    font-size: 20px;
+    margin-bottom: 6px;
+    color: var(--accent-purple);
+}
+
+.login-box p {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.3);
+    color: white;
+    font-size: 13px;
+    outline: none;
+    margin-bottom: 16px;
+}
+
+.login-box input:focus { border-color: var(--accent-purple); }
+
+.login-box button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 20px;
+    background: var(--accent-purple);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.login-box button:hover { opacity: 0.85; }
+
+#app-screen { display: none; }
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 64px;
+    min-width: 64px;
+    background: rgba(10, 8, 14, 0.9);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    gap: 8px;
+}
+
+.sidebar .brand {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--accent-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    margin-bottom: 16px;
+}
+
+.sidebar .nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--text-dim);
+}
+
+.sidebar .nav-btn:hover { background: rgba(123, 82, 244, 0.15); color: var(--text-main); }
+.sidebar .nav-btn.active { background: rgba(123, 82, 244, 0.25); color: var(--accent-purple); }
+.sidebar .nav-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.main-content {
+    flex: 1;
+    padding: 24px 32px;
+    overflow-y: auto;
+    max-height: 100vh;
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.page-header p {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: var(--module-bg);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(8px);
+}
+
+.stat-card .label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-card .value {
+    font-size: 28px;
+    font-weight: 700;
+    margin-top: 4px;
+    color: var(--accent-purple);
+}
+
+.search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.search-bar input {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.3);
+    color: white;
+    font-size: 13px;
+    outline: none;
+}
+
+.search-bar input:focus { border-color: var(--accent-purple); }
+
+.search-bar button {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent-purple);
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--module-bg);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.users-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.2);
+}
+
+.users-table td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.users-table tr:hover td { background: rgba(123, 82, 244, 0.06); }
+.users-table tr:last-child td { border-bottom: none; }
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge.premium { background: rgba(0, 164, 239, 0.2); color: #00a4ef; }
+.badge.admin { background: rgba(123, 82, 244, 0.2); color: var(--accent-purple); }
+.badge.offline { background: rgba(255, 255, 255, 0.08); color: var(--text-dim); }
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.pagination button {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pagination button:hover:not(:disabled) { border-color: var(--accent-purple); color: var(--accent-purple); }
+.pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+.pagination span { font-size: 12px; color: var(--text-dim); }
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+    background: var(--module-bg);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 28px;
+    width: 560px;
+    max-height: 80vh;
+    overflow-y: auto;
+    backdrop-filter: blur(12px);
+}
+
+.modal h3 {
+    font-size: 16px;
+    margin-bottom: 16px;
+    color: var(--accent-purple);
+}
+
+.modal-field {
+    margin-bottom: 14px;
+}
+
+.modal-field label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.modal-field input, .modal-field select {
+    width: 100%;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.3);
+    color: white;
+    font-size: 13px;
+    outline: none;
+}
+
+.modal-field input:focus { border-color: var(--accent-purple); }
+
+.modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--accent-purple); color: white; }
+.btn-danger { background: #e74c3c; color: white; }
+.btn-secondary { background: rgba(255,255,255,0.1); color: var(--text-main); }
+.btn-blue { background: #5865F2; color: white; }
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 200;
+    animation: slideIn 0.3s ease;
+    backdrop-filter: blur(8px);
+}
+
+.toast.success { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+.toast.error { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); }
+
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.user-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.user-detail-header img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-purple);
+}
+
+.user-detail-header .info h4 { font-size: 16px; }
+.user-detail-header .info p { font-size: 12px; color: var(--text-dim); }
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.toggle-row:last-child { border-bottom: none; }
+.toggle-row .label { font-size: 13px; }
+
+.toggle {
+    width: 40px;
+    height: 22px;
+    border-radius: 11px;
+    background: rgba(255,255,255,0.1);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.toggle.on { background: var(--accent-purple); }
+
+.toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s;
+}
+
+.toggle.on::after { transform: translateX(18px); }
+
+.history-item {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.no-users {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+    font-size: 14px;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.filter-bar select {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.3);
+    color: white;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+}
+
+.filter-bar select:focus { border-color: var(--accent-purple); }
+.filter-bar select option { background: #1a1424; color: white; }
+
+.bug-card {
+    background: var(--module-bg);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.bug-card:hover { background: rgba(123, 82, 244, 0.08); border-color: rgba(123, 82, 244, 0.2); }
+
+.bug-card .bug-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.bug-card .bug-icon.crash { background: rgba(231, 76, 60, 0.15); }
+.bug-card .bug-icon.manual { background: rgba(52, 152, 219, 0.15); }
+
+.bug-card .bug-info { flex: 1; min-width: 0; }
+.bug-card .bug-info h4 { font-size: 13px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bug-card .bug-info p { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bug-card .bug-meta { text-align: right; flex-shrink: 0; }
+.bug-card .bug-meta .date { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+
+.bug-detail-field {
+    margin-bottom: 14px;
+}
+
+.bug-detail-field label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.bug-detail-field pre {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #ccc;
+    font-family: 'Consolas', 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+.bug-detail-field .value {
+    font-size: 13px;
+    color: var(--text-main);
+}
+
+.bug-detail-field .platform-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.bug-detail-field .platform-tags .badge { font-size: 10px; }
+
+.status-select {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.3);
+    color: white;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+}
+
+.status-select option { background: #1a1424; color: white; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h1>MINEVANCED</h1>
+        <p>Admin Panel</p>
+        <input type="password" id="login-password" placeholder="Admin password..." autofocus>
+        <button onclick="doLogin()">Sign In</button>
+    </div>
+</div>
+
+<div id="app-screen">
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="brand">M</div>
+            <div class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard')">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>
+            </div>
+            <div class="nav-btn" data-view="users" onclick="switchView('users')">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div class="nav-btn" data-view="bugreports" onclick="switchView('bugreports')">
+                <svg viewBox="0 0 24 24"><path d="M8 2l1.88 1.88M14.12 3.88L16 2M9 7.13v-1a3.003 3.003 0 116 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 014-4h4a4 4 0 014 4v3c0 3.3-2.7 6-6 6z"/><path d="M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M6 17H2M18 13h4M18 17h4M20.97 5c0 2.1-1.6 3.8-3.5 4"/></svg>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div id="view-dashboard" class="view active">
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                    <p>Overview of your Minevanced network.</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="label">Total Users</div><div class="value" id="stat-total">-</div></div>
+                    <div class="stat-card"><div class="label">Premium Accounts</div><div class="value" id="stat-premium">-</div></div>
+                    <div class="stat-card"><div class="label">New (7 days)</div><div class="value" id="stat-recent">-</div></div>
+                    <div class="stat-card"><div class="label">Admins</div><div class="value" id="stat-admins">-</div></div>
+                    <div class="stat-card"><div class="label">Bug Reports</div><div class="value" id="stat-bugs">-</div></div>
+                    <div class="stat-card"><div class="label">New Bugs (7d)</div><div class="value" id="stat-recent-bugs">-</div></div>
+                </div>
+            </div>
+
+            <div id="view-users" class="view">
+                <div class="page-header">
+                    <h2>User Management</h2>
+                    <p>Search and manage registered users.</p>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="user-search" placeholder="Search by username, Discord name, or ID..." onkeydown="if(event.key==='Enter')loadUsers()">
+                    <button onclick="loadUsers()">Search</button>
+                </div>
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>MC Username</th>
+                            <th>Discord</th>
+                            <th>Discord ID</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody"></tbody>
+                </table>
+                <div id="no-users" class="no-users" style="display:none;">No users found.</div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+
+            <div id="view-bugreports" class="view">
+                <div class="page-header">
+                    <h2>Bug Reports</h2>
+                    <p>View and manage incoming bug and crash reports.</p>
+                </div>
+                <div class="filter-bar">
+                    <select id="bug-status-filter" onchange="loadBugReports(1)">
+                        <option value="">All Statuses</option>
+                        <option value="new" selected>New</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="fixed">Fixed</option>
+                        <option value="wontfix">Won't Fix</option>
+                    </select>
+                    <select id="bug-type-filter" onchange="loadBugReports(1)">
+                        <option value="">All Types</option>
+                        <option value="crash">Crash (Auto)</option>
+                        <option value="manual">Manual Report</option>
+                    </select>
+                </div>
+                <div id="bug-reports-list"></div>
+                <div id="no-bugs" class="no-users" style="display:none;">No bug reports found.</div>
+                <div class="pagination" id="bug-pagination"></div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+const API = window.location.origin;
+let adminToken = localStorage.getItem('admin_token');
+let currentPage = 1;
+let currentUserPage = 1;
+
+async function api(method, path, body) {
+    const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+    };
+    if (adminToken) opts.headers['Authorization'] = `Bearer ${adminToken}`;
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(`${API}${path}`, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+}
+
+function toast(msg, type) {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+}
+
+async function doLogin() {
+    const pw = document.getElementById('login-password').value;
+    try {
+        const data = await api('POST', '/admin/api/login', { password: pw });
+        adminToken = data.token;
+        localStorage.setItem('admin_token', adminToken);
+        showApp();
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+});
+
+function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    loadDashboard();
+}
+
+function switchView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`view-${name}`).classList.add('active');
+    document.querySelector(`[data-view="${name}"]`).classList.add('active');
+    if (name === 'dashboard') loadDashboard();
+    if (name === 'users') loadUsers();
+    if (name === 'bugreports') loadBugReports(1);
+}
+
+async function loadDashboard() {
+    try {
+        const stats = await api('GET', '/admin/api/stats');
+        document.getElementById('stat-total').textContent = stats.totalUsers;
+        document.getElementById('stat-premium').textContent = stats.premiumCount;
+        document.getElementById('stat-recent').textContent = stats.recentSignups;
+        document.getElementById('stat-admins').textContent = stats.adminCount;
+        document.getElementById('stat-bugs').textContent = stats.totalBugs;
+        document.getElementById('stat-recent-bugs').textContent = stats.recentBugs;
+    } catch {
+        if (adminToken) {
+            localStorage.removeItem('admin_token');
+            adminToken = null;
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('app-screen').style.display = 'none';
+        }
+    }
+}
+
+async function loadUsers(page) {
+    currentPage = page || 1;
+    const search = document.getElementById('user-search').value;
+    try {
+        const data = await api('GET', `/admin/api/users?search=${encodeURIComponent(search)}&page=${currentPage}&limit=15`);
+        const tbody = document.getElementById('users-tbody');
+        const noUsers = document.getElementById('no-users');
+
+        if (data.users.length === 0) {
+            tbody.innerHTML = '';
+            noUsers.style.display = 'block';
+        } else {
+            noUsers.style.display = 'none';
+            tbody.innerHTML = data.users.map(u => `
+                <tr onclick="openUser(${u.id})">
+                    <td><strong>${escapeHtml(u.mc_username || '-')}</strong></td>
+                    <td>${escapeHtml(u.discord_username)}</td>
+                    <td style="font-family:monospace;font-size:11px;color:var(--text-dim)">${u.discord_id}</td>
+                    <td>
+                        ${u.is_premium ? '<span class="badge premium">Premium</span> ' : ''}
+                        ${u.is_admin ? '<span class="badge admin">Admin</span> ' : ''}
+                        ${!u.is_premium && !u.is_admin ? '<span class="badge offline">User</span>' : ''}
+                        ${!u.mc_username ? '<span class="badge" style="background:rgba(241,196,15,0.2);color:#f1c40f;">No Username</span>' : ''}
+                    </td>
+                    <td style="font-size:12px;color:var(--text-dim)">${new Date(u.created_at).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        renderPagination(data.page, data.totalPages);
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+function renderPagination(page, total) {
+    const el = document.getElementById('pagination');
+    if (total <= 1) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+        <button ${page <= 1 ? 'disabled' : ''} onclick="loadUsers(${page - 1})">Prev</button>
+        <span>Page ${page} of ${total}</span>
+        <button ${page >= total ? 'disabled' : ''} onclick="loadUsers(${page + 1})">Next</button>
+    `;
+}
+
+async function openUser(id) {
+    try {
+        const data = await api('GET', `/admin/api/users/${id}`);
+        const u = data.user;
+        const history = data.usernameHistory;
+
+        const avatarUrl = u.discord_avatar
+            ? `https://cdn.discordapp.com/avatars/${u.discord_id}/${u.discord_avatar}.png`
+            : '';
+
+        document.getElementById('modal-content').innerHTML = `
+            <div class="user-detail-header">
+                ${avatarUrl ? `<img src="${avatarUrl}" alt="avatar" onerror="this.style.display='none'">` : ''}
+                <div class="info">
+                    <h4>${escapeHtml(u.mc_username || 'No Username')}</h4>
+                    <p>${escapeHtml(u.discord_username)} (${u.discord_id})</p>
+                </div>
+            </div>
+
+            <div class="modal-field">
+                <label>MC Username</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="edit-username" value="${escapeAttr(u.mc_username || '')}" placeholder="Set username..." maxlength="16">
+                    <button class="btn btn-primary" onclick="changeUsername(${u.id})">Save</button>
+                </div>
+            </div>
+
+            <div style="margin:16px 0 8px;font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Toggles</div>
+
+            <div class="toggle-row">
+                <span class="label">Premium Account</span>
+                <div class="toggle ${u.is_premium ? 'on' : ''}" id="toggle-premium" onclick="togglePremium(${u.id})"></div>
+            </div>
+            <div class="toggle-row">
+                <span class="label">Admin Access</span>
+                <div class="toggle ${u.is_admin ? 'on' : ''}" id="toggle-admin" onclick="toggleAdmin(${u.id})"></div>
+            </div>
+
+            <div style="margin:16px 0 8px;font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Discord Link</div>
+            <div class="modal-field">
+                <label>Discord User ID</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="edit-discord-id" value="${u.discord_id}" placeholder="Discord snowflake ID...">
+                    <button class="btn btn-blue" onclick="unlinkDiscord(${u.id})">Unlink</button>
+                </div>
+            </div>
+
+            ${history.length > 0 ? `
+                <div style="margin:16px 0 8px;font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;">Username History</div>
+                ${history.map(h => `
+                    <div class="history-item">
+                        <strong>${escapeHtml(h.new_username)}</strong>
+                        ${h.old_username ? ` (was: ${escapeHtml(h.old_username)})` : ' (initial)'}
+                        by ${h.changed_by} on ${new Date(h.changed_at).toLocaleDateString()}
+                    </div>
+                `).join('')}
+            ` : ''}
+
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="deleteUser(${u.id})">Delete User</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        `;
+        document.getElementById('modal-overlay').classList.add('open');
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function changeUsername(id) {
+    const username = document.getElementById('edit-username').value;
+    try {
+        await api('PUT', `/admin/api/users/${id}/username`, { username });
+        toast('Username changed', 'success');
+        closeModal();
+        loadUsers(currentPage);
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function togglePremium(id) {
+    const el = document.getElementById('toggle-premium');
+    const newVal = !el.classList.contains('on');
+    try {
+        await api('PUT', `/admin/api/users/${id}/premium`, { isPremium: newVal });
+        el.classList.toggle('on');
+        toast(`Premium ${newVal ? 'enabled' : 'disabled'}`, 'success');
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function toggleAdmin(id) {
+    const el = document.getElementById('toggle-admin');
+    const newVal = !el.classList.contains('on');
+    try {
+        await api('PUT', `/admin/api/users/${id}/admin`, { isAdmin: newVal });
+        el.classList.toggle('on');
+        toast(`Admin ${newVal ? 'enabled' : 'disabled'}`, 'success');
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function unlinkDiscord(id) {
+    const newId = document.getElementById('edit-discord-id').value;
+    if (!newId) return toast('Enter a Discord ID', 'error');
+    if (!confirm('This will invalidate the user\'s current session. Continue?')) return;
+    try {
+        await api('PUT', `/admin/api/users/${id}/discord`, { discordId: newId });
+        toast('Discord account relinked', 'success');
+        closeModal();
+        loadUsers(currentPage);
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function deleteUser(id) {
+    if (!confirm('Are you sure you want to permanently delete this user?')) return;
+    try {
+        await api('DELETE', `/admin/api/users/${id}`);
+        toast('User deleted', 'success');
+        closeModal();
+        loadUsers(currentPage);
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+
+document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+});
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escapeAttr(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// --- BUG REPORTS ---
+let bugPage = 1;
+
+async function loadBugReports(page) {
+    bugPage = page || 1;
+    const status = document.getElementById('bug-status-filter').value;
+    const type = document.getElementById('bug-type-filter').value;
+    const params = new URLSearchParams({ limit: 20, offset: (bugPage - 1) * 20 });
+    if (status) params.set('status', status);
+    if (type) params.set('type', type);
+
+    try {
+        const data = await api('GET', `/api/bug-reports?${params}`);
+        const list = document.getElementById('bug-reports-list');
+        const noBugs = document.getElementById('no-bugs');
+
+        if (!data.reports || data.reports.length === 0) {
+            list.innerHTML = '';
+            noBugs.style.display = 'block';
+        } else {
+            noBugs.style.display = 'none';
+            list.innerHTML = data.reports.map(r => {
+                const isCrash = r.type === 'crash';
+                const icon = isCrash ? '\uD83D\uDD25' : '\uD83D\uDC1B';
+                const iconClass = isCrash ? 'crash' : 'manual';
+                const title = escapeHtml(r.title || (isCrash ? 'Crash Report' : 'Bug Report'));
+                const desc = escapeHtml(r.description || r.message || 'No description');
+                const date = new Date(r.created_at).toLocaleDateString() + ' ' + new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return `
+                    <div class="bug-card" onclick="openBugReport(${r.id})">
+                        <div class="bug-icon ${iconClass}">${icon}</div>
+                        <div class="bug-info">
+                            <h4>${title}</h4>
+                            <p>${desc}</p>
+                        </div>
+                        <div class="bug-meta">
+                            <div class="date">${date}</div>
+                            <span class="badge ${r.status === 'new' ? 'badge-new' : r.status === 'fixed' ? 'badge-fixed' : r.status === 'reviewed' ? 'badge-reviewed' : 'badge-wontfix'}">${r.status}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        const totalPages = Math.ceil(data.total / 20);
+        renderBugPagination(bugPage, totalPages, data.total);
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+function renderBugPagination(page, total, count) {
+    const el = document.getElementById('bug-pagination');
+    if (total <= 1) { el.innerHTML = `<span>${count} report${count !== 1 ? 's' : ''}</span>`; return; }
+    el.innerHTML = `
+        <button ${page <= 1 ? 'disabled' : ''} onclick="loadBugReports(${page - 1})">Prev</button>
+        <span>${count} reports &mdash; Page ${page} of ${total}</span>
+        <button ${page >= total ? 'disabled' : ''} onclick="loadBugReports(${page + 1})">Next</button>
+    `;
+}
+
+async function openBugReport(id) {
+    try {
+        const r = await api('GET', `/api/bug-reports/${id}`);
+        const isCrash = r.type === 'crash';
+
+        document.getElementById('modal-content').innerHTML = `
+            <h3 style="display:flex;align-items:center;gap:8px;">
+                ${isCrash ? '\uD83D\uDD25' : '\uD83D\uDC1B'} Bug Report #${r.id}
+            </h3>
+
+            <div class="bug-detail-field">
+                <label>Status</label>
+                <select class="status-select" id="bug-status-select" onchange="updateBugStatus(${r.id})">
+                    <option value="new" ${r.status === 'new' ? 'selected' : ''}>New</option>
+                    <option value="reviewed" ${r.status === 'reviewed' ? 'selected' : ''}>Reviewed</option>
+                    <option value="fixed" ${r.status === 'fixed' ? 'selected' : ''}>Fixed</option>
+                    <option value="wontfix" ${r.status === 'wontfix' ? 'selected' : ''}>Won't Fix</option>
+                </select>
+            </div>
+
+            <div class="bug-detail-field">
+                <label>Title</label>
+                <div class="value">${escapeHtml(r.title || '-')}</div>
+            </div>
+
+            ${r.description ? `
+            <div class="bug-detail-field">
+                <label>Description</label>
+                <div class="value">${escapeHtml(r.description)}</div>
+            </div>
+            ` : ''}
+
+            <div class="bug-detail-field">
+                <label>System Info</label>
+                <div class="platform-tags">
+                    <span class="badge premium">${escapeHtml(r.platform || '?')}</span>
+                    <span class="badge offline">${escapeHtml(r.arch || '?')}</span>
+                    <span class="badge offline">Node ${escapeHtml(r.nodeVersion || '?')}</span>
+                    <span class="badge offline">Electron ${escapeHtml(r.electronVersion || '?')}</span>
+                    <span class="badge offline">App ${escapeHtml(r.appVersion || '?')}</span>
+                </div>
+            </div>
+
+            ${r.mc_version || r.modpack || r.username ? `
+            <div class="bug-detail-field">
+                <label>Context</label>
+                <div class="platform-tags">
+                    ${r.username ? `<span class="badge admin">${escapeHtml(r.username)}</span>` : ''}
+                    ${r.modpack ? `<span class="badge premium">${escapeHtml(r.modpack)}</span>` : ''}
+                    ${r.mc_version ? `<span class="badge offline">MC ${escapeHtml(r.mc_version)}</span>` : ''}
+                </div>
+            </div>
+            ` : ''}
+
+            ${r.message ? `
+            <div class="bug-detail-field">
+                <label>Error Message</label>
+                <pre>${escapeHtml(r.message)}</pre>
+            </div>
+            ` : ''}
+
+            ${r.stack ? `
+            <div class="bug-detail-field">
+                <label>Stack Trace</label>
+                <pre>${escapeHtml(r.stack)}</pre>
+            </div>
+            ` : ''}
+
+            ${r.client_logs ? `
+            <div class="bug-detail-field">
+                <label>Client Logs (last portion)</label>
+                <pre>${escapeHtml(r.client_logs)}</pre>
+            </div>
+            ` : ''}
+
+            <div class="bug-detail-field">
+                <label>Submitted</label>
+                <div class="value">${new Date(r.created_at).toLocaleString()}</div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        `;
+        document.getElementById('modal-overlay').classList.add('open');
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+async function updateBugStatus(id) {
+    const status = document.getElementById('bug-status-select').value;
+    try {
+        await api('PATCH', `/api/bug-reports/${id}`, { status });
+        toast(`Report #${id} marked as ${status}`, 'success');
+        loadBugReports(bugPage);
+    } catch (e) {
+        toast(e.message, 'error');
+    }
+}
+
+// Add status badge styles
+const bugStyle = document.createElement('style');
+bugStyle.textContent = `
+    .badge-new { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+    .badge-reviewed { background: rgba(52, 152, 219, 0.2); color: #3498db; }
+    .badge-fixed { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+    .badge-wontfix { background: rgba(255, 255, 255, 0.08); color: var(--text-dim); }
+`;
+document.head.appendChild(bugStyle);
+
+if (adminToken) showApp();
+</script>
+</body>
+</html>

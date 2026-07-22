@@ -12,6 +12,9 @@ fs.writeFileSync(logPath, '--- Minevanced Boot Trace (High Precision) ---\n');
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 
+// --- Server Configuration ---
+const SERVER_URL = 'http://localhost:8080';
+
 // --- Crash Handling System ---
 let crashLogPath = null;
 let crashWindow = null;
@@ -39,6 +42,31 @@ function parseDependencyErrors(output) {
         });
     }
     return depErrors;
+}
+
+async function autoSendCrashReport(crashData) {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        await fetch(`${SERVER_URL}/api/bug-reports`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'crash',
+                title: `[Auto] ${crashData.type}: ${crashData.message}`,
+                message: crashData.message,
+                stack: crashData.stack,
+                platform: crashData.platform,
+                arch: crashData.arch,
+                nodeVersion: crashData.nodeVersion,
+                electronVersion: crashData.electronVersion,
+                appVersion: crashData.appVersion,
+                client_logs: (crashData.gameOutput || []).join('\n').slice(-4096)
+            })
+        });
+        console.log('[CRASH] Auto-sent crash report to server');
+    } catch (err) {
+        console.warn('[CRASH] Failed to auto-send crash report:', err.message);
+    }
 }
 
 function writeCrashLog(errorType, errorMessage, stack, context = {}) {
@@ -77,6 +105,12 @@ function writeCrashLog(errorType, errorMessage, stack, context = {}) {
         
         fs.writeFileSync(crashLogPath, JSON.stringify(crashData, null, 2));
         console.error(`[CRASH] Logged to ${crashLogPath}`);
+
+        const config = loadConfig();
+        if (config.autoSendCrashReports !== false) {
+            autoSendCrashReport(crashData).catch(() => {});
+        }
+
         return crashLogPath;
     } catch (e) {
         console.error('[CRASH] Failed to write crash log:', e);
@@ -282,6 +316,21 @@ function showCrashWindow(errorType, errorMessage, stack) {
                 .btn-close:hover {
                     background: rgba(255,255,255,0.14);
                 }
+                .btn-send-report {
+                    background: rgba(255,255,255,0.08);
+                    color: var(--text-main);
+                    border: 1px solid rgba(255,255,255,0.16);
+                }
+                .btn-send-report:hover {
+                    background: rgba(123, 82, 244, 0.3);
+                    border-color: rgba(123, 82, 244, 0.6);
+                }
+                .btn-send-report.sent {
+                    background: rgba(46, 204, 113, 0.3);
+                    border-color: rgba(46, 204, 113, 0.6);
+                    color: #2ecc71;
+                    pointer-events: none;
+                }
             </style>
         </head>
         <body>
@@ -303,6 +352,7 @@ function showCrashWindow(errorType, errorMessage, stack) {
                 </div>
                 <div class="stack-trace" id="stackTrace"></div>
                 <div class="actions">
+                    <button class="btn-send-report" id="btn-send-report" onclick="sendReport()">Send Report</button>
                     <button class="btn-restart" onclick="restartApp()">Restart Application</button>
                     <button class="btn-close" onclick="closeWindow()">Close</button>
                 </div>
@@ -315,6 +365,29 @@ function showCrashWindow(errorType, errorMessage, stack) {
                 function restartApp() {
                     const { ipcRenderer } = require('electron');
                     ipcRenderer.send('restart-app');
+                }
+                async function sendReport() {
+                    const btn = document.getElementById('btn-send-report');
+                    btn.textContent = 'Sending...';
+                    btn.disabled = true;
+                    try {
+                        const { ipcRenderer } = require('electron');
+                        const result = await ipcRenderer.invoke('send-bug-report', {
+                            title: '[Crash] ' + (crashData.errorType || 'Unknown Error'),
+                            description: crashData.errorMessage || '',
+                            includeLogs: true
+                        });
+                        if (result.success) {
+                            btn.textContent = 'Sent!';
+                            btn.classList.add('sent');
+                        } else {
+                            btn.textContent = 'Failed';
+                            setTimeout(() => { btn.textContent = 'Send Report'; btn.disabled = false; }, 2000);
+                        }
+                    } catch (e) {
+                        btn.textContent = 'Failed';
+                        setTimeout(() => { btn.textContent = 'Send Report'; btn.disabled = false; }, 2000);
+                    }
                 }
                 const crashData = JSON.parse(decodeURIComponent(${JSON.stringify(encodeURIComponent(JSON.stringify({errorType, errorMessage, stack})))}));\n                document.getElementById('errorType').textContent = crashData.errorType || 'UNKNOWN ERROR';\n                document.getElementById('errorMessage').textContent = crashData.errorMessage || 'An unexpected error occurred';\n                document.getElementById('stackTrace').textContent = crashData.stack || 'No stack trace available';
             </script>
@@ -972,6 +1045,16 @@ ipcMain.on('save-config', (event, newConf) => {
     saveConfig(newConf);
 });
 
+ipcMain.on('logout', (event) => {
+    const config = loadConfig();
+    delete config.authType;
+    delete config.authProfile;
+    delete config.sessionToken;
+    delete config.discordUser;
+    config.hasAccount = false;
+    saveConfig(config);
+});
+
 // --- Dynamic Mod List Scanner ---
 ipcMain.on('request-mods', (event, instanceName) => {
       let targetInstance = instanceName || 'minevanced-modded';
@@ -1006,7 +1089,7 @@ ipcMain.on('request-modpacks', async (event) => {
     let onlinePacks = [];
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch('http://localhost:8080/manifests').catch(() => ({ ok: false }));
+        const response = await fetch(`${SERVER_URL}/manifests`).catch(() => ({ ok: false }));
         if (response.ok) {
             const data = await response.json();
             if (data.success && data.modpacks) {
@@ -1047,7 +1130,7 @@ ipcMain.on('request-modpacks', async (event) => {
             const fetch = (await import('node-fetch')).default;
             for (const [inviteId, inviteCode] of Object.entries(invites)) {
                 try {
-                    const r = await fetch('http://localhost:8080/invite/resolve', {
+                    const r = await fetch(`${SERVER_URL}/invite/resolve`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ code: inviteCode })
@@ -1104,7 +1187,7 @@ ipcMain.on('request-modpacks', async (event) => {
 ipcMain.on('resolve-invite', async (event, code) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch('http://localhost:8080/invite/resolve', {
+        const response = await fetch(`${SERVER_URL}/invite/resolve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code })
@@ -1455,75 +1538,187 @@ ipcMain.on('login-microsoft-code', async (event, urlOrCode) => {
     }
 });
 
-ipcMain.on('login-offline', async (event, credentials) => {
-    try {
-        const { username, password } = credentials;
-        const config = loadConfig();
+// --- Discord Authentication ---
+const http = require('http');
+let _discordSessionToken = null;
+let _discordCallbackServer = null;
+let _discordCallbackPort = 29347;
 
-        // 1. Strict Limit Rule: 1 cracked account maximum
-        // Bypassed if devModeActive === true AND the specific devAuth bypass is toggled
-        if (!(devModeActive && devConfig.bypassAuth) && config.authType === 'offline' && config.authProfile) {
-            if (config.authProfile.name.toLowerCase() !== username.toLowerCase()) {
-                return event.sender.send('auth-failed', "Strict Limit Rule: Only 1 offline account is allowed per launcher installation.");
-            }
-        }
-
-        // 2. MinevancedAuth verification
-        const response = await fetch('http://localhost:8080/auth/login', {
+function processDiscordCode(code, redirectUri) {
+    (async () => {
+        const response = await fetch(`${SERVER_URL}/auth/discord/callback`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ code, redirectUri })
         }).catch(err => null);
 
         if (!response) {
-            return event.sender.send('auth-failed', "MinevancedAuth Server Offline. Cannot verify credentials.");
+            return mainWindow.webContents.send('auth-failed', 'Server offline. Cannot complete Discord authentication.');
         }
 
         const data = await response.json();
 
-        if (!response.ok || !data.success) {
-            return event.sender.send('auth-failed', data.error || "Invalid MinevancedAuth credentials.");
+        if (!response.ok) {
+            return mainWindow.webContents.send('auth-failed', data.error || 'Discord authentication failed.');
         }
 
-        // 3. Successful Verification, get local Auth payload
-        let auth = await Authenticator.getAuth(username);
-        // Strip out any non-serializable classes, functions, or promises down to POJO
+        _discordSessionToken = data.token;
+
+        if (data.needsUsername) {
+            mainWindow.webContents.send('discord-needs-username', {
+                token: data.token,
+                discordUser: data.user,
+            });
+            return;
+        }
+
+        let auth = await Authenticator.getAuth(data.user.mc_username);
         auth = JSON.parse(JSON.stringify(auth));
-        
-        saveConfig({ authType: 'offline', authProfile: auth });
-        event.sender.send('auth-success', { type: 'offline', profile: auth });
+
+        saveConfig({
+            authType: 'discord',
+            authProfile: auth,
+            sessionToken: data.token,
+            discordUser: {
+                id: data.user.discord_id,
+                username: data.user.discord_username,
+                avatar: data.user.discord_avatar,
+            },
+        });
+
+        mainWindow.webContents.send('auth-success', { type: 'discord', profile: auth });
+    })();
+}
+
+function startDiscordCallbackServer() {
+    return new Promise((resolve, reject) => {
+        if (_discordCallbackServer) {
+            return resolve(_discordCallbackPort);
+        }
+
+        const server = http.createServer((req, res) => {
+            const url = new URL(req.url, `http://127.0.0.1:${_discordCallbackPort}`);
+
+            if (url.pathname === '/discord-callback') {
+                const code = url.searchParams.get('code');
+                const error = url.searchParams.get('error');
+
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                if (error) {
+                    res.end('<html><body style="background:#121016;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;"><h2>Authentication cancelled. You can close this tab.</h2></body></html>');
+                    if (mainWindow) mainWindow.webContents.send('auth-failed', 'Discord authentication was cancelled.');
+                } else if (code) {
+                    res.end('<html><body style="background:#121016;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;"><h2>Authentication successful! You can close this tab.</h2></body></html>');
+                    const redirectUri = `http://127.0.0.1:${_discordCallbackPort}/discord-callback`;
+                    processDiscordCode(code, redirectUri);
+                } else {
+                    res.end('<html><body style="background:#121016;color:white;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;"><h2>No authorization code received.</h2></body></html>');
+                }
+
+                setTimeout(() => stopDiscordCallbackServer(), 2000);
+            } else {
+                res.writeHead(404);
+                res.end('Not found');
+            }
+        });
+
+        server.on('error', (err) => {
+            _discordCallbackServer = null;
+            reject(err);
+        });
+
+        server.listen(_discordCallbackPort, '127.0.0.1', () => {
+            _discordCallbackServer = server;
+            resolve(_discordCallbackPort);
+        });
+    });
+}
+
+function stopDiscordCallbackServer() {
+    if (_discordCallbackServer) {
+        _discordCallbackServer.close();
+        _discordCallbackServer = null;
+    }
+}
+
+ipcMain.on('login-discord', async (event) => {
+    try {
+        const port = await startDiscordCallbackServer();
+        const redirectUri = `http://127.0.0.1:${port}/discord-callback`;
+
+        const response = await fetch(`${SERVER_URL}/auth/discord/authorize?redirect=${encodeURIComponent(redirectUri)}`).catch(() => null);
+        if (!response) {
+            stopDiscordCallbackServer();
+            return event.sender.send('auth-failed', 'Server offline. Cannot initiate Discord login.');
+        }
+        const data = await response.json();
+        shell.openExternal(data.url);
     } catch (err) {
-        console.error("Offline Login Error:", err);
-        event.sender.send('auth-failed', "Failed to create offline profile.");
+        console.error('Discord login error:', err);
+        stopDiscordCallbackServer();
+        event.sender.send('auth-failed', 'Failed to start Discord login. Port 29347 may be in use.');
     }
 });
 
-// --- Register Offline/MinevancedAuth ---
-ipcMain.on('register-offline', async (event, credentials) => {
+ipcMain.on('select-discord-username', async (event, { username, token }) => {
     try {
-        const { username, password } = credentials;
-        const fetch = (await import('node-fetch')).default;
-
-        const response = await fetch('http://localhost:8080/auth/register', {
+        const response = await fetch(`${SERVER_URL}/auth/discord/username`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        }).catch(err => null);
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ username }),
+        }).catch(() => null);
 
         if (!response) {
-            return event.sender.send('register-failed', "MinevancedAuth Server Offline. Cannot reach server.");
+            return event.sender.send('discord-username-error', 'Server offline. Cannot set username.');
         }
 
         const data = await response.json();
 
-        if (!response.ok || !data.success) {
-            return event.sender.send('register-failed', data.error || "Failed to register account.");
+        if (!response.ok) {
+            return event.sender.send('discord-username-error', data.error || 'Failed to set username.');
         }
 
-        event.sender.send('register-success', data.message || "Account created successfully.");
+        let auth = await Authenticator.getAuth(data.user.mc_username);
+        auth = JSON.parse(JSON.stringify(auth));
+
+        saveConfig({
+            authType: 'discord',
+            authProfile: auth,
+            sessionToken: token,
+            discordUser: {
+                id: data.user.discord_id,
+                username: data.user.discord_username,
+                avatar: data.user.discord_avatar,
+            },
+        });
+
+        event.sender.send('auth-success', { type: 'discord', profile: auth });
     } catch (err) {
-        console.error("Offline Registration Error:", err);
-        event.sender.send('register-failed', "An unexpected error occurred during registration.");
+        console.error('Username selection error:', err);
+        event.sender.send('auth-failed', 'Failed to set username.');
+    }
+});
+
+ipcMain.on('verify-discord-session', async (event) => {
+    try {
+        const config = loadConfig();
+        if (!config.sessionToken) return event.sender.send('session-invalid');
+
+        const response = await fetch(`${SERVER_URL}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${config.sessionToken}` },
+        }).catch(() => null);
+
+        if (!response || !response.ok) {
+            return event.sender.send('session-invalid');
+        }
+
+        const data = await response.json();
+        event.sender.send('session-valid', data.user);
+    } catch {
+        event.sender.send('session-invalid');
     }
 });
 
@@ -1600,7 +1795,7 @@ ipcMain.handle('send-crash-log-to-server', async (event, crashLogPath) => {
         const crashData = JSON.parse(fs.readFileSync(crashLogPath, 'utf8'));
         const fetch = (await import('node-fetch')).default;
         
-        const response = await fetch('http://localhost:8080/api/crash-logs', {
+        const response = await fetch(`${SERVER_URL}/api/crash-logs`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1626,6 +1821,46 @@ ipcMain.handle('send-crash-log-to-server', async (event, crashLogPath) => {
         }
     } catch (error) {
         console.error('[CRASH LOG SEND ERROR]', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('send-bug-report', async (event, { title, description, includeLogs }) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const config = loadConfig();
+        const body = {
+            type: 'manual',
+            title: title || 'User Bug Report',
+            description: description || '',
+            platform: process.platform,
+            arch: process.arch,
+            nodeVersion: process.version,
+            electronVersion: process.versions.electron,
+            appVersion: app.getVersion ? app.getVersion() : 'unknown',
+            mc_version: config.lastMinecraftVersion || null,
+            modpack: config.lastModpack || null,
+            username: config.discordUser?.username || config.authProfile || null
+        };
+
+        if (includeLogs && gameOutputLog.length > 0) {
+            body.client_logs = gameOutputLog.slice(-200).join('\n');
+        }
+
+        const response = await fetch(`${SERVER_URL}/api/bug-reports`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { success: true, id: data.id };
+        } else {
+            return { success: false, error: `Server error: ${response.status}` };
+        }
+    } catch (error) {
+        console.error('[BUG REPORT SEND ERROR]', error);
         return { success: false, error: error.message };
     }
 });
@@ -1662,11 +1897,11 @@ app.on('render-process-gone', (event, details) => {
 });
 
 ipcMain.on('verify-dev-password', (event, pwd) => {
-    // Hidden target hash computed mathematically against target plaintext "play.io2"
-    const targetHash = "81862ebdd29ee6f84b06ff53adcb62e1cb0161e296c88ffdae190ec5eeb99937";
-    const inputHash = crypto.createHash('sha256').update(pwd).digest('hex');
+    const _e = [129,151,12,142,150,203,128,143,195,159,85,232,97,22,140,30,219,32,83,161,194,173,249,122,54,176,180,14,50,84,103,56];
+    const _t = _e.map((b,i)=> b ^ ((i*0x11)&0xff)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    const _h = crypto.createHash('sha256').update(pwd).digest('hex');
 
-    if (inputHash === targetHash) {
+    if (_h === _t) {
         devModeActive = true;
         event.sender.send('dev-password-result', true);
     } else {
@@ -1934,7 +2169,7 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         safeSend('update-status', 'Fetching Manifest from Server...');
         const fetch = (await import('node-fetch')).default;
 
-        let targetManifestUrl = `http://localhost:8080/manifests/files/${instanceName}.json`;
+        let targetManifestUrl = `${SERVER_URL}/manifests/files/${instanceName}.json`;
         const inviteCode = configRequest && typeof configRequest.inviteCode === 'string' ? configRequest.inviteCode.trim() : '';
         if (inviteCode) {
             targetManifestUrl += `?code=${encodeURIComponent(inviteCode)}`;

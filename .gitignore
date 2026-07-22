@@ -1,8 +1,12 @@
 node_modules
+server/node_modules
 .env
+server/.env
 startup.log
 dist
-package-lock.json
 manifests/dummy.json
 user.json
 modpacks
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
