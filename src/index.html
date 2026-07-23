@@ -1605,6 +1605,7 @@
 
         // --- GAME LOGS LOGIC ---
         let gameLogs = [];
+        let gameLogUpdatePending = false;
 
         // Show logs modal
         document.getElementById('logs-btn').addEventListener('click', () => {
@@ -1625,6 +1626,16 @@
             document.getElementById('game-logs-content').innerText = '';
         });
 
+        // Flush buffered game logs to DOM (throttled)
+        function flushGameLogsToDOM() {
+            gameLogUpdatePending = false;
+            const logsContent = document.getElementById('game-logs-content');
+            if (document.getElementById('game-logs-modal').classList.contains('visible')) {
+                logsContent.textContent = gameLogs.join('\n');
+                logsContent.scrollTop = logsContent.scrollHeight;
+            }
+        }
+
         // Receive game logs from main process
         ipcRenderer.on('game-log', (event, logLine) => {
             gameLogs.push(logLine);
@@ -1632,11 +1643,10 @@
             if (gameLogs.length > 500) {
                 gameLogs.shift();
             }
-            // Auto-scroll in logs modal if it's visible
-            const logsContent = document.getElementById('game-logs-content');
-            if (!document.getElementById('game-logs-modal').classList.contains('hidden')) {
-                logsContent.innerText = gameLogs.join('\n');
-                logsContent.scrollTop = logsContent.scrollHeight;
+            // Batch DOM updates: max once every 200ms
+            if (!gameLogUpdatePending) {
+                gameLogUpdatePending = true;
+                setTimeout(flushGameLogsToDOM, 200);
             }
         });
 

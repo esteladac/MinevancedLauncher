@@ -3,7 +3,7 @@ const { performance } = require('perf_hooks');
 const timeStart = performance.now();
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, fork } = require('child_process');
 const crypto = require('crypto');
 
 // This creates a log file right where you launch the app
@@ -1755,6 +1755,7 @@ ipcMain.on('verify-discord-session', async (event) => {
 
 // --- Launch Engine (Lazy Loaded) ---
 let activeGameProcess = null;
+let launchChild = null;
 let devModeActive = false; // The secret Developer Backdoor switch
 let devConfig = { bypassAuth: true, bypassAntiCheat: true }; // Controls specific overrides
 
@@ -2066,7 +2067,6 @@ ipcMain.on('kill-game', () => {
     console.log("Launcher instructed engine to terminate game process.");
     
     if (activeGameProcess) {
-        // Safe fallback for Windows: nuke specific game process tree by PID (Avoids killing other Java apps)
         if (process.platform === 'win32' && activeGameProcess.pid) {
             require('child_process').exec(`taskkill /F /PID ${activeGameProcess.pid} /T`, () => {
                 console.log(`OS-level taskkill executed gracefully on Minevanced PID: ${activeGameProcess.pid}`);
@@ -2078,6 +2078,10 @@ ipcMain.on('kill-game', () => {
                 console.error("Failed to kill cleanly:", e);
             }
         }
+    }
+    if (launchChild) {
+        try { launchChild.send({ type: 'exit' }); } catch (_) {}
+        launchChild = null;
     }
 });
 
@@ -2129,11 +2133,9 @@ ipcMain.on('launch-game', async (event, configRequest) => {
     const crypto = require('crypto');
     const https = require('https');
     const http = require('http');
-    const { Client, Authenticator } = require('minecraft-launcher-core');
+    const { Authenticator } = require('minecraft-launcher-core');
     const loaders = require('tomate-loaders');
 
-    // appData inherently points to C:\Users\User\AppData\Roaming on Windows
-    const launcher = new Client();
     const rootPath = path.join(getLauncherDataPath(), instanceName);
     // Removed verbose platform/paths logging
     // dbg('platform details', {...});
@@ -2561,165 +2563,143 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             }
         };
 
-        launcher.on('progress', (e) => {
-            // Removed verbose dbg logging to reduce console spam
-            // dbg('launcher progress event', e);
+        // Run the launcher engine in a separate child process to avoid blocking the main Electron event loop.
+        // minecraft-launcher-core does heavy synchronous I/O (readFileSync, mkdirSync, copyFileSync, etc.)
+        // that freezes the renderer when run on the main process.
+        const launchChildProc = fork(path.join(__dirname, 'launch-process.js'));
+        launchChild = launchChildProc;
 
-            const phaseType = e.type ? e.type.toLowerCase() : '';
-            if (phaseType === 'assets') {
-                renderAssetBar(e.task || 0, e.total || 0);
-            } else {
-                clearAssetBar();
-            }
+        launchChildProc.on('message', (msg) => {
+            if (msg.type === 'event') {
+                const e = msg.data;
+                switch (msg.event) {
+                    case 'progress': {
+                        const phaseType = e.type ? e.type.toLowerCase() : '';
+                        if (phaseType === 'assets') {
+                            renderAssetBar(e.task || 0, e.total || 0);
+                        } else {
+                            clearAssetBar();
+                        }
 
-            let percent = fallbackPercent;
-            if (e.type && progressPhases[e.type.toLowerCase()]) {
-                const phase = progressPhases[e.type.toLowerCase()];
-                const calculated = phase.start + (e.task / e.total) * (phase.end - phase.start);
-                
-                // Protect against NaN if e.task or e.total is malformed / zero
-                if (!isNaN(calculated)) {
-                    percent = Math.max(fallbackPercent, calculated);
-                    fallbackPercent = percent; // Guarantee no backward glitch
+                        let percent = fallbackPercent;
+                        if (e.type && progressPhases[e.type.toLowerCase()]) {
+                            const phase = progressPhases[e.type.toLowerCase()];
+                            const calculated = phase.start + (e.task / e.total) * (phase.end - phase.start);
+                            if (!isNaN(calculated)) {
+                                percent = Math.max(fallbackPercent, calculated);
+                                fallbackPercent = percent;
+                            }
+                        }
+
+                        if (fallbackPercent >= 45 && !progressInterval) {
+                            startArtificialProgress();
+                        }
+
+                        const displayType = e.type ? e.type.charAt(0).toUpperCase() + e.type.slice(1) : 'Engine';
+                        safeSend('update-status', `Checking ${displayType}: ${Math.round(percent)}%`);
+                        break;
+                    }
+                    case 'download-status': {
+                        const shortName = e.name ? (e.name.length > 50 ? '...' + e.name.slice(-50) : e.name) : 'files...';
+                        safeSend('update-status', `Downloading: ${shortName} ${Math.round(fallbackPercent)}%`);
+                        break;
+                    }
+                    case 'data': {
+                        gameOutputLog.push(e);
+                        if (gameOutputLog.length > MAX_OUTPUT_LINES) {
+                            gameOutputLog.shift();
+                        }
+                        safeSend('game-log', `[GAME] ${e}`);
+                        if (e.includes('Missing or unsupported mandatory dependencies')) {
+                            const depErrors = parseDependencyErrors(e);
+                            if (depErrors.length > 0) {
+                                console.error('[DEPENDENCY ERROR] Detected mod dependency conflicts:', depErrors);
+                                safeSend('dependency-error', {
+                                    type: 'neoforge-version-mismatch',
+                                    errors: depErrors,
+                                    raw: e
+                                });
+                            }
+                        }
+                        if (e.includes("Setting user:")) {
+                            stopArtificialProgress();
+                            fallbackPercent = 100;
+                            safeSend('update-status', 'Game is running! 100%');
+                        }
+                        break;
+                    }
+                    case 'debug':
+                        safeSend('game-log', `[DEBUG] ${e}`);
+                        break;
+                    case 'arguments':
+                        safeSend('game-log', `[ARGS] ${e}`);
+                        break;
+                    case 'error':
+                        clearAssetBar();
+                        stopArtificialProgress();
+                        safeSend('game-log', `[ERROR] ${e}`);
+                        console.error(`[${launchTraceId}] [GAME ERROR EVENT]`, e);
+                        break;
+                    case 'close': {
+                        clearAssetBar();
+                        stopArtificialProgress();
+                        const exitCode = typeof e === 'number' ? e : (e && typeof e.code === 'number' ? e.code : -1);
+                        console.log("Game exited with code:", exitCode);
+
+                        if (exitCode === 0) {
+                            console.log("Game session ended cleanly.");
+                        } else {
+                            safeSend('update-status', `Game closed unexpectedly (code ${exitCode}).`);
+                            dbg('non-zero exit detected', { exitCode });
+
+                            const fullOutput = gameOutputLog.join('\n');
+                            const dependencyErrors = parseDependencyErrors(fullOutput);
+                            if (dependencyErrors.length > 0 || fullOutput.includes('Missing or unsupported mandatory dependencies')) {
+                                const crashPath = writeCrashLog('GAME_CRASH_DEPENDENCY', `Game crashed with exit code ${exitCode}. Dependency errors detected.`, '', {
+                                    exitCode,
+                                    hasDependencyErrors: true,
+                                    dependencyCount: dependencyErrors.length
+                                });
+                                safeSend('game-crash-with-deps', {
+                                    exitCode,
+                                    dependencyErrors,
+                                    crashLogPath: crashPath
+                                });
+                            } else {
+                                writeCrashLog('GAME_CRASH', `Game crashed with exit code ${exitCode}.`, '', { exitCode });
+                            }
+                        }
+
+                        safeSend('game-closed');
+                        activeGameProcess = null;
+                        gameOutputLog = [];
+                        if (launchChild === launchChildProc) launchChild = null;
+                        try { launchChildProc.send({ type: 'exit' }); } catch (_) {}
+                        break;
+                    }
                 }
-            }
-
-            // Start artificial progress if we hit 45% and no more events
-            if (fallbackPercent >= 45 && !progressInterval) {
-                startArtificialProgress();
-            }
-
-            // Re-capitalize the first letter for UI cleanliness
-            const displayType = e.type ? e.type.charAt(0).toUpperCase() + e.type.slice(1) : 'Engine';
-            safeSend('update-status', `Checking ${displayType}: ${Math.round(percent)}%`);
-        });
-
-        launcher.on('download-status', (e) => {
-            // Removed verbose dbg logging to reduce console spam
-            // dbg('launcher download-status event', e);
-            const shortName = e.name ? (e.name.length > 50 ? '...' + e.name.slice(-50) : e.name) : 'files...';
-            // Also append the overall engine progress so the UI bar stays accurate and moving
-            safeSend('update-status', `Downloading: ${shortName} ${Math.round(fallbackPercent)}%`);
-        });
-
-        launcher.on('data', (e) => {
-            // Store output for crash analysis
-            gameOutputLog.push(e);
-            if (gameOutputLog.length > MAX_OUTPUT_LINES) {
-                gameOutputLog.shift();
-            }
-            
-            // Send logs to renderer
-            safeSend('game-log', `[GAME] ${e}`);
-            
-            // Detect dependency errors in real-time
-            if (e.includes('Missing or unsupported mandatory dependencies')) {
-                const depErrors = parseDependencyErrors(e);
-                if (depErrors.length > 0) {
-                    console.error('[DEPENDENCY ERROR] Detected mod dependency conflicts:', depErrors);
-                    safeSend('dependency-error', {
-                        type: 'neoforge-version-mismatch',
-                        errors: depErrors,
-                        raw: e
-                    });
-                }
-            }
-            
-            // Only log important game output, not every line
-            if (e.includes("Setting user:")) {
-                 stopArtificialProgress();
-                 fallbackPercent = 100;
-                 safeSend('update-status', 'Game is running! 100%');
-            }
-            // Removed console.log for every data event to reduce spam
-        });
-
-        launcher.on('debug', (e) => {
-            // Send debug logs to renderer
-            safeSend('game-log', `[DEBUG] ${e}`);
-        });
-
-        launcher.on('arguments', (e) => {
-            // Send arguments logs to renderer
-            safeSend('game-log', `[ARGS] ${e}`);
-        });
-
-        launcher.on('error', (e) => {
-            clearAssetBar();
-            stopArtificialProgress();
-            safeSend('game-log', `[ERROR] ${e}`);
-            console.error(`[${launchTraceId}] [GAME ERROR EVENT]`, e);
-        });
-        
-        launcher.on('close', (e) => {
-            clearAssetBar();
-            stopArtificialProgress();
-            const exitCode = typeof e === 'number' ? e : (e && typeof e.code === 'number' ? e.code : -1);
-            console.log("Game exited with code:", exitCode);
-            // Removed verbose dbg logging for close event
-            // dbg('launcher close event payload', e);
-
-            if (exitCode === 0) {
-                console.log("Game session ended cleanly.");
-            } else {
-                safeSend('update-status', `Game closed unexpectedly (code ${exitCode}).`);
-                dbg('non-zero exit detected', { exitCode });
-                
-                // Log crash with output context
-                const fullOutput = gameOutputLog.join('\n');
-                const dependencyErrors = parseDependencyErrors(fullOutput);
-                if (dependencyErrors.length > 0 || fullOutput.includes('Missing or unsupported mandatory dependencies')) {
-                    const crashPath = writeCrashLog('GAME_CRASH_DEPENDENCY', `Game crashed with exit code ${exitCode}. Dependency errors detected.`, '', {
-                        exitCode,
-                        hasDependencyErrors: true,
-                        dependencyCount: dependencyErrors.length
-                    });
-                    // Send crash info to renderer with dependency details
-                    safeSend('game-crash-with-deps', {
-                        exitCode,
-                        dependencyErrors,
-                        crashLogPath: crashPath
-                    });
-                } else {
-                    writeCrashLog('GAME_CRASH', `Game crashed with exit code ${exitCode}.`, '', { exitCode });
-                }
-            }
-
-            safeSend('game-closed');
-            activeGameProcess = null;
-            gameOutputLog = []; // Clear output log after game closes
-        });
-
-        activeGameProcess = await launcher.launch(opts);
-        console.log("Game process started.", activeGameProcess && activeGameProcess.pid ? `PID: ${activeGameProcess.pid}` : '');
-        dbg('launcher.launch resolved', {
-            hasProcess: !!activeGameProcess,
-            pid: activeGameProcess && activeGameProcess.pid,
-            spawnfile: activeGameProcess && activeGameProcess.spawnfile,
-            spawnargs: activeGameProcess && activeGameProcess.spawnargs
-        });
-
-        if (activeGameProcess) {
-            activeGameProcess.on('error', (procErr) => {
-                console.error(`[${launchTraceId}] [PROCESS ERROR]`, procErr);
-            });
-
-            activeGameProcess.on('spawn', () => {
-                dbg('child process spawn event fired');
-            });
-
-            if (activeGameProcess.stdout) {
-                activeGameProcess.stdout.on('data', (chunk) => {
-                    console.log(`[${launchTraceId}] [STDOUT] ${chunk.toString().trim()}`);
+            } else if (msg.type === 'launched') {
+                activeGameProcess = { pid: msg.pid };
+                console.log("Game process started.", msg.pid ? `PID: ${msg.pid}` : '');
+                dbg('launch process resolved', { pid: msg.pid });
+            } else if (msg.type === 'error') {
+                console.error("Engine Launch Error:", msg.message);
+                dbg('engine phase failed', { message: msg.message, stack: msg.stack });
+                safeSend('update-status', 'Error: Engine failed to launch.');
+                safeSend('launch-error', {
+                    title: 'Engine Launch Failed',
+                    message: msg.message || 'Unable to start the game.'
                 });
+                safeSend('game-closed');
+                if (launchChild === launchChildProc) launchChild = null;
             }
+        });
 
-            if (activeGameProcess.stderr) {
-                activeGameProcess.stderr.on('data', (chunk) => {
-                    console.error(`[${launchTraceId}] [STDERR] ${chunk.toString().trim()}`);
-                });
-            }
-        }
+        launchChildProc.on('exit', () => {
+            if (launchChild === launchChildProc) launchChild = null;
+        });
+
+        launchChildProc.send({ type: 'launch', opts });
 
     } catch (engineError) {
         console.error("Engine Launch Error:", engineError);
