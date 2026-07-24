@@ -1478,7 +1478,25 @@ function previewCoverImage(input) {
     reader.readAsDataURL(file);
 }
 
-function renderWizardStep2() {
+async function fetchMinecraftVersions() {
+    try {
+        const res = await fetch('https://launchermeta.mojang.com/mc/game/version_manifest.json');
+        const data = await res.json();
+        return data.versions.filter(v => v.type === 'release').map(v => v.id);
+    } catch (_) { return []; }
+}
+
+async function fetchLoaderVersions(loader, mcVersion) {
+    if (!loader || loader === 'vanilla' || !mcVersion) return [];
+    try {
+        const data = await api('GET', `/admin/api/loader-versions?loader=${encodeURIComponent(loader)}&minecraft_version=${encodeURIComponent(mcVersion)}`);
+        return Array.isArray(data) ? data : [];
+    } catch (_) { return []; }
+}
+
+let mcVersionsCache = [];
+
+async function renderWizardStep2() {
     const modal = document.getElementById('modal-content');
     modal.innerHTML = `
         ${renderWizardHeader()}
@@ -1488,11 +1506,13 @@ function renderWizardStep2() {
             <div style="display:flex;gap:10px;">
                 <div class="bug-detail-field" style="flex:1;">
                     <label>Minecraft Version *</label>
-                    <input type="text" id="mp-game" value="1.21.1" placeholder="1.21.1" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">
+                    <select id="mp-game" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">
+                        <option value="">Loading versions...</option>
+                    </select>
                 </div>
                 <div class="bug-detail-field" style="flex:1;">
                     <label>Mod Loader *</label>
-                    <select id="mp-loader" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">
+                    <select id="mp-loader" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;" onchange="onWizardLoaderChange()">
                         <option value="forge">Forge</option>
                         <option value="fabric">Fabric</option>
                         <option value="neoforge">NeoForge</option>
@@ -1501,9 +1521,19 @@ function renderWizardStep2() {
                     </select>
                 </div>
             </div>
-            <div class="bug-detail-field">
-                <label>Modpack Version</label>
-                <input type="text" id="mp-version" value="1.0.0" placeholder="1.0.0" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">
+            <div style="display:flex;gap:10px;">
+                <div class="bug-detail-field" style="flex:1;">
+                    <label>Loader Version</label>
+                    <div id="mp-loader-version-wrapper">
+                        <select id="mp-loader-version" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">
+                            <option value="">Select loader first</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="bug-detail-field" style="flex:1;">
+                    <label>Modpack Version</label>
+                    <input type="text" id="mp-version" value="1.0.0" placeholder="1.0.0" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">
+                </div>
             </div>
         </div>
         <div class="wizard-nav">
@@ -1513,6 +1543,37 @@ function renderWizardStep2() {
             </div>
         </div>
     `;
+    if (mcVersionsCache.length === 0) {
+        mcVersionsCache = await fetchMinecraftVersions();
+    }
+    const sel = document.getElementById('mp-game');
+    if (sel) {
+        sel.innerHTML = mcVersionsCache.length > 0
+            ? mcVersionsCache.map(v => `<option value="${v}" ${v === '1.21.1' ? 'selected' : ''}>${v}</option>`).join('')
+            : '<option value="1.21.1" selected>1.21.1</option>';
+        sel.addEventListener('change', onWizardLoaderChange);
+    }
+    onWizardLoaderChange();
+}
+
+async function onWizardLoaderChange() {
+    const loader = document.getElementById('mp-loader').value;
+    const mcVersion = document.getElementById('mp-game').value;
+    const wrapper = document.getElementById('mp-loader-version-wrapper');
+    if (!wrapper) return;
+    if (loader === 'vanilla') {
+        wrapper.innerHTML = '<input type="text" id="mp-loader-version" value="latest" disabled style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text-dim);font-size:13px;">';
+        return;
+    }
+    wrapper.innerHTML = '<select id="mp-loader-version" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;"><option value="">Loading...</option></select>';
+    const versions = await fetchLoaderVersions(loader, mcVersion);
+    const sel = document.getElementById('mp-loader-version');
+    if (!sel) return;
+    if (versions.length > 0) {
+        sel.innerHTML = versions.map((v, i) => `<option value="${v}" ${i === 0 ? 'selected' : ''}>${v}</option>`).join('');
+    } else {
+        sel.outerHTML = '<input type="text" id="mp-loader-version" placeholder="e.g. 47.3.0" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">';
+    }
 }
 
 function renderWizardStep3() {
@@ -1647,11 +1708,12 @@ async function wizardNext() {
     } else if (wizardStep === 2) {
         const game_version = document.getElementById('mp-game').value.trim();
         const mod_loader = document.getElementById('mp-loader').value;
+        const loader_version = document.getElementById('mp-loader-version').value.trim() || 'latest';
         const version = document.getElementById('mp-version').value.trim();
         if (!game_version) return toast('Minecraft version is required', 'error');
         try {
             await api('PUT', `/admin/api/modpacks/${wizardPackId}`, {
-                minecraft_version: game_version, mod_loader, version: version || '1.0.0'
+                minecraft_version: game_version, mod_loader, loader_version, version: version || '1.0.0'
             });
             toast('Config saved', 'success');
             wizardStep = 3;
@@ -1902,11 +1964,13 @@ async function editModpack(id) {
                     </div>
                     <div class="bug-detail-field" style="flex:1;">
                         <label>Game Version</label>
-                        <input type="text" id="mp-game" value="${escapeHtml(pack.minecraftVersion || '')}" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">
+                        <select id="mp-game" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;" onchange="onEditLoaderChange(${id})">
+                            <option value="">Loading...</option>
+                        </select>
                     </div>
                     <div class="bug-detail-field" style="flex:1;">
                         <label>Mod Loader</label>
-                        <select id="mp-loader" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">
+                        <select id="mp-loader" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;" onchange="onEditLoaderChange(${id})">
                             <option value="forge" ${pack.modLoader === 'forge' ? 'selected' : ''}>Forge</option>
                             <option value="fabric" ${pack.modLoader === 'fabric' ? 'selected' : ''}>Fabric</option>
                             <option value="quilt" ${pack.modLoader === 'quilt' ? 'selected' : ''}>Quilt</option>
@@ -1914,6 +1978,18 @@ async function editModpack(id) {
                             <option value="vanilla" ${pack.modLoader === 'vanilla' ? 'selected' : ''}>Vanilla</option>
                         </select>
                     </div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <div class="bug-detail-field" style="flex:1;">
+                        <label>Loader Version</label>
+                        <div id="edit-loader-version-wrapper">
+                            ${pack.modLoader === 'vanilla'
+                                ? `<input type="text" id="mp-loader-version" value="latest" disabled style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text-dim);font-size:13px;">`
+                                : `<input type="text" id="mp-loader-version" value="${escapeHtml(pack.modLoaderVersion || 'latest')}" placeholder="e.g. 0.16.14" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">`
+                            }
+                        </div>
+                    </div>
+                    <div class="bug-detail-field" style="flex:1;"></div>
                 </div>
                 <div style="display:flex;gap:10px;">
                     <div class="bug-detail-field" style="flex:1;">
@@ -1989,8 +2065,34 @@ async function editModpack(id) {
             </div>
         `;
         document.getElementById('modal-overlay').classList.add('open');
+        if (mcVersionsCache.length === 0) mcVersionsCache = await fetchMinecraftVersions();
+        const gameSel = document.getElementById('mp-game');
+        if (gameSel && mcVersionsCache.length > 0) {
+            gameSel.innerHTML = mcVersionsCache.map(v => `<option value="${v}" ${v === pack.minecraftVersion ? 'selected' : ''}>${v}</option>`).join('');
+        }
+        if (pack.modLoader !== 'vanilla') onEditLoaderChange(id);
     } catch (e) {
         toast(e.message, 'error');
+    }
+}
+
+async function onEditLoaderChange(packId) {
+    const loader = document.getElementById('mp-loader').value;
+    const mcVersion = document.getElementById('mp-game').value;
+    const wrapper = document.getElementById('edit-loader-version-wrapper');
+    if (!wrapper) return;
+    if (loader === 'vanilla') {
+        wrapper.innerHTML = '<input type="text" id="mp-loader-version" value="latest" disabled style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text-dim);font-size:13px;">';
+        return;
+    }
+    wrapper.innerHTML = '<select id="mp-loader-version" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;"><option value="">Loading...</option></select>';
+    const versions = await fetchLoaderVersions(loader, mcVersion);
+    const sel = document.getElementById('mp-loader-version');
+    if (!sel) return;
+    if (versions.length > 0) {
+        sel.innerHTML = versions.map((v, i) => `<option value="${v}" ${i === 0 ? 'selected' : ''}>${v}</option>`).join('');
+    } else {
+        sel.outerHTML = '<input type="text" id="mp-loader-version" placeholder="e.g. 47.3.0" style="width:100%;padding:10px 14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:white;font-size:13px;">';
     }
 }
 
@@ -2000,13 +2102,14 @@ async function saveModpack() {
     const version = document.getElementById('mp-version').value.trim();
     const game_version = document.getElementById('mp-game').value.trim();
     const mod_loader = document.getElementById('mp-loader').value;
+    const loader_version = document.getElementById('mp-loader-version').value.trim() || 'latest';
     const cover_image = document.getElementById('mp-cover').value.trim();
 
     if (!name) return toast('Name is required', 'error');
 
     try {
         await api('PUT', `/admin/api/modpacks/${currentModpackId}`, {
-            name, description, version, minecraft_version: game_version, mod_loader, cover_image
+            name, description, version, minecraft_version: game_version, mod_loader, loader_version, cover_image
         });
         toast('Modpack updated', 'success');
         editModpack(currentModpackId);

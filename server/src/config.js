@@ -2,8 +2,6 @@ const path = require('path');
 const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-function _d(e) { return e.map((b,i)=> b ^ ((i*0x11)&0xff)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
-
 const config = {
     port: parseInt(process.env.PORT || '8080', 10),
     discord: {

@@ -1703,7 +1703,7 @@
             }
         });
 
-        // Request available modpacks from manifests/ directory
+        // Request available modpacks from server
         ipcRenderer.send('request-modpacks');
         
         // Modpack Options Modal logic
@@ -1794,7 +1794,7 @@
             globalModpackList = modpacks; // Store in memory for the manager
 
             if (modpacks.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding-top: 40px;">No manifests found. Place .json files in the manifests folder.</p>';
+                container.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding-top: 40px;">No modpacks found.</p>';
             } else {
                 modpacks.forEach(mp => {
                     const card = document.createElement('div');

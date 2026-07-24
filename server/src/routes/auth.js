@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const discord = require('../auth/discord');
 const { isUsernamePremium } = require('../auth/premium');
-const { generateToken, createUserSession, requireAuth } = require('../auth/middleware');
+const { createUserSession, requireAuth } = require('../auth/middleware');
 const db = require('../db/connection');
 
 router.get('/discord/authorize', (req, res) => {

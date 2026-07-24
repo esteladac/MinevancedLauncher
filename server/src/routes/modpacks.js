@@ -48,7 +48,7 @@ function buildManifest(modpack) {
         modLoader: modpack.mod_loader,
         modLoaderVersion: modpack.loader_version || 'latest',
         description: modpack.description || '',
-        coverImage: modpack.cover_image ? (modpack.cover_image.startsWith('http') ? modpack.cover_image : `${config.serverUrl}${modpack.cover_image}`) : '',
+        coverImage: modpack.cover_image ? (modpack.cover_image.startsWith('http') || modpack.cover_image.startsWith('data:') ? modpack.cover_image : `${config.serverUrl}${modpack.cover_image}`) : '',
         author: modpack.author || 'Unknown',
         version: modpack.version || '1.0.0',
         mods: mods.map(m => ({
@@ -318,32 +318,7 @@ router.delete('/admin/api/modpacks/:id/mods/:modId', requireAdmin, (req, res) =>
     }
 });
 
-router.put('/admin/api/modpacks/:id/mods/:modId', requireAdmin, (req, res) => {
-    try {
-        const mod = db.prepare('SELECT * FROM modpack_mods WHERE id = ? AND modpack_id = ?').get(req.params.modId, req.params.id);
-        if (!mod) return res.status(404).json({ error: 'Mod not found' });
-
-        const { name, version, download_url } = req.body;
-        db.prepare('UPDATE modpack_mods SET name = ?, version = ?, download_url = ? WHERE id = ?').run(
-            name || mod.name, version !== undefined ? version : mod.version,
-            download_url !== undefined ? download_url : mod.download_url, req.params.modId
-        );
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to update mod' });
-    }
-});
-
 // --- ADMIN: INVITE CODES ---
-
-router.get('/admin/api/modpacks/:id/invites', requireAdmin, (req, res) => {
-    try {
-        const invites = db.prepare('SELECT * FROM invite_codes WHERE modpack_id = ? ORDER BY created_at DESC').all(req.params.id);
-        res.json(invites);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch invite codes' });
-    }
-});
 
 router.post('/admin/api/modpacks/:id/invite', requireAdmin, (req, res) => {
     try {
@@ -393,18 +368,6 @@ router.get('/admin/api/modrinth/search', requireAdmin, async (req, res) => {
     }
 });
 
-router.get('/admin/api/modrinth/mod/:id', requireAdmin, async (req, res) => {
-    try {
-        const response = await fetch(`https://api.modrinth.com/v2/project/${req.params.id}`, {
-            headers: { 'User-Agent': 'MinevancedLauncher/1.0 (contact@minevanced.com)' }
-        });
-        if (!response.ok) return res.status(response.status).json({ error: 'Modrinth API error' });
-        res.json(await response.json());
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch mod from Modrinth' });
-    }
-});
-
 router.get('/admin/api/modrinth/mod/:id/versions', requireAdmin, async (req, res) => {
     try {
         const params = new URLSearchParams();
@@ -418,6 +381,58 @@ router.get('/admin/api/modrinth/mod/:id/versions', requireAdmin, async (req, res
         res.json(await response.json());
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch versions from Modrinth' });
+    }
+});
+
+router.get('/admin/api/loader-versions', requireAdmin, async (req, res) => {
+    try {
+        const { loader, minecraft_version } = req.query;
+        if (!loader || !minecraft_version) return res.json([]);
+
+        if (loader === 'fabric') {
+            const response = await fetch(`https://meta.fabricmc.net/v2/versions/loader/${minecraft_version}`, {
+                headers: { 'User-Agent': 'MinevancedLauncher/1.0' }
+            });
+            if (!response.ok) return res.json([]);
+            const data = await response.json();
+            return res.json(data.map(v => v.version));
+        }
+
+        if (loader === 'quilt') {
+            const response = await fetch(`https://meta.quiltmc.org/v3/versions/loader/${minecraft_version}`, {
+                headers: { 'User-Agent': 'MinevancedLauncher/1.0' }
+            });
+            if (!response.ok) return res.json([]);
+            const data = await response.json();
+            return res.json(data.map(v => v.version));
+        }
+
+        if (loader === 'forge') {
+            const response = await fetch(`https://files.minecraftforge.net/maven/net/minecraftforge/forge/maven-metadata.xml`, {
+                headers: { 'User-Agent': 'MinevancedLauncher/1.0' }
+            });
+            if (!response.ok) return res.json([]);
+            const xml = await response.text();
+            const versions = [...xml.matchAll(/<version>([^<]+)<\/version>/g)]
+                .map(m => m[1])
+                .filter(v => v.startsWith(minecraft_version + '-'))
+                .sort().reverse();
+            return res.json(versions);
+        }
+
+        if (loader === 'neoforge') {
+            const response = await fetch(`https://api.neoforged.net/versions/loader?game_version=${encodeURIComponent(minecraft_version)}`, {
+                headers: { 'User-Agent': 'MinevancedLauncher/1.0' }
+            });
+            if (!response.ok) return res.json([]);
+            const data = await response.json();
+            return res.json(data.map(v => v.version).sort().reverse());
+        }
+
+        res.json([]);
+    } catch (error) {
+        console.error('[LOADER-VERSIONS] Error:', error);
+        res.json([]);
     }
 });
 

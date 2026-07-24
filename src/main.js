@@ -663,9 +663,9 @@ async function getJavaPortable(minecraftVersion, dbgFunc) {
     } finally {
         // Final cleanup of zip file
         try {
-            if (fs.existsSync(zipPath)) {
-                fs.unlinkSync(zipPath);
-                dbgFunc && dbgFunc('cleaned up zip file', zipPath);
+            if (fs.existsSync(archivePath)) {
+                fs.unlinkSync(archivePath);
+                dbgFunc && dbgFunc('cleaned up zip file', archivePath);
             }
         } catch (zipErr) {
             dbgFunc && dbgFunc('zip cleanup failed', zipErr.message);
@@ -1045,17 +1045,6 @@ ipcMain.on('save-config', (event, newConf) => {
     saveConfig(newConf);
 });
 
-ipcMain.on('mark-modpack-installed', (event, { packId, version }) => {
-    try {
-        const cfg = loadConfig();
-        cfg.installedModpackVersions = cfg.installedModpackVersions || {};
-        cfg.installedModpackVersions[packId] = version;
-        saveConfig(cfg);
-    } catch (e) {
-        console.error('Failed to mark modpack installed:', e);
-    }
-});
-
 ipcMain.on('logout', (event) => {
     const config = loadConfig();
     delete config.authType;
@@ -1100,15 +1089,15 @@ ipcMain.on('request-modpacks', async (event) => {
     let onlinePacks = [];
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`${SERVER_URL}/manifests`).catch(() => ({ ok: false }));
+        const response = await fetch(`${SERVER_URL}/api/modpacks`).catch(() => ({ ok: false }));
         if (response.ok) {
             const data = await response.json();
-            if (data.success && data.modpacks) {
-                onlinePacks = data.modpacks; // usually doesn't include Minevanced+Vanilla anymore since we hardcode them, but let's keep server ones
+            if (Array.isArray(data)) {
+                onlinePacks = data;
             }
         }
     } catch (err) {
-        console.error('Failed to fetch manifests from server:', err);
+        console.error('Failed to fetch modpacks from server:', err);
     }
 
     try {
@@ -1163,29 +1152,6 @@ ipcMain.on('request-modpacks', async (event) => {
         } catch (e) {
             // Non-fatal: continue without invite manifests if config/read fails
         }
-
-        for (const folderName of ['manifests', 'modpacks']) {
-              const localUserManifestsDir = path.join(app.getAppPath(), folderName);
-              if (fs.existsSync(localUserManifestsDir)) {
-                  try {
-                      const userFiles = fs.readdirSync(localUserManifestsDir);
-                      for (const file of userFiles) {
-                          if (file.endsWith('.json') && !file.startsWith('INVITE_')) {
-                              try {
-                                  const fcontent = fs.readFileSync(path.join(localUserManifestsDir, file), 'utf8');
-                                  const parsed = JSON.parse(fcontent);
-                                  if (!parsed.id) parsed.id = file.replace('.json', '');
-                                  if (!onlinePacks.find(p => p.id === parsed.id) && !parsed.name.startsWith('[DEV]')) {
-                                      parsed.isOfficial = false;
-                                      parsed.isBuiltin = false;
-                                      onlinePacks.push(parsed);
-                                  }
-                              } catch (err) {}
-                          }
-                      }
-                  } catch (err) {}
-              }
-          }
 
           const filteredPacks = onlinePacks.filter(p => !p.hidden);
 
@@ -1377,15 +1343,6 @@ ipcMain.handle('get-installed-instance-versions', async (event, instanceId) => {
     }
 });
 
-ipcMain.handle('get-installed-vanilla-versions', async () => {
-    try {
-        return listInstalledVersionsForInstance('vanilla');
-    } catch (err) {
-        console.error('Failed to list installed vanilla versions:', err);
-        return [];
-    }
-});
-
 // Reinstall flow: remove only local instance data, keep manifest/list entry so it can be installed again.
 ipcMain.on('uninstall-instance', (event, targetPayload) => {
     try {
@@ -1542,31 +1499,6 @@ ipcMain.on('close-auth-window', (event) => {
     // Notify renderer to hide any auth modal UI
     try { event.sender.send('close-auth-popup'); } catch (_) {}
     _currentXboxManager = null;
-});
-
-ipcMain.on('request-browser-link', (event) => {
-    try {
-        const authManager = new msmc.Auth("select_account");
-        const link = authManager.createLink(); // Uses default redirect https://login.live.com/oauth20_desktop.srf
-        shell.openExternal(link);
-    } catch (e) {
-        console.error(e);
-    }
-});
-
-ipcMain.on('login-microsoft-code', async (event, urlOrCode) => {
-    try {
-        const authManager = new msmc.Auth("select_account");
-        const xboxManager = await authManager.login(urlOrCode);
-        const token = await xboxManager.getMinecraft();
-        const mclcAuth = token.mclc();
-
-        saveConfig({ authType: 'microsoft', authProfile: mclcAuth });
-        event.sender.send('auth-success', { type: 'microsoft', profile: mclcAuth });
-    } catch (err) {
-        console.error("Microsoft Browser Code Login Error:", err);
-        event.sender.send('auth-failed', err.message || "Failed to get Minecraft token from supplied URL.");
-    }
 });
 
 // --- Discord Authentication ---
@@ -1733,26 +1665,6 @@ ipcMain.on('select-discord-username', async (event, { username, token }) => {
     }
 });
 
-ipcMain.on('verify-discord-session', async (event) => {
-    try {
-        const config = loadConfig();
-        if (!config.sessionToken) return event.sender.send('session-invalid');
-
-        const response = await fetch(`${SERVER_URL}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${config.sessionToken}` },
-        }).catch(() => null);
-
-        if (!response || !response.ok) {
-            return event.sender.send('session-invalid');
-        }
-
-        const data = await response.json();
-        event.sender.send('session-valid', data.user);
-    } catch {
-        event.sender.send('session-invalid');
-    }
-});
-
 // --- Launch Engine (Lazy Loaded) ---
 let activeGameProcess = null;
 let launchChild = null;
@@ -1806,6 +1718,10 @@ ipcMain.handle('get-crash-logs', async () => {
         console.error('Failed to get crash logs:', e);
         return [];
     }
+});
+
+ipcMain.handle('get-crash-logs-dir', () => {
+    return getCrashLogsDir();
 });
 
 ipcMain.handle('get-crash-log-content', async (event, filepath) => {
@@ -2003,27 +1919,8 @@ ipcMain.on('dev-create-instance', (event, data) => {
     fs.writeFileSync(targetPath, JSON.stringify(testManifest, null, 2));
     console.log(`[DEV] Injected manifest to ${targetPath}`);
 
-    // Automatically trigger app to re-read the folder for the UI.
-    // Fetch manifests and parse them correctly
-    let modpacks = [];
-    if (fs.existsSync(manifestsDir)) {
-        try {
-            const files = fs.readdirSync(manifestsDir);
-            files.forEach(file => {
-                if (file.endsWith('.json')) {
-                    const content = fs.readFileSync(path.join(manifestsDir, file), 'utf8');
-                    try {
-                        const parsed = JSON.parse(content);
-                        parsed.id = file.replace('.json', ''); // simple ID
-                        modpacks.push(parsed);
-                    } catch(jsonErr) {
-                        console.error('Failed to parse manifest json:', file, jsonErr);
-                    }
-                }
-            });
-        } catch(e) { console.error('Failed checking manifests folder', e); }
-    }
-    event.sender.send('load-modpacks', modpacks);
+    // Trigger full modpack list reload from all sources (server, builtins, invites)
+    event.sender.send('request-modpacks');
 });
 
 // DEV: Purge Temporary Instances
@@ -2045,22 +1942,10 @@ ipcMain.on('dev-delete-instances', (event) => {
                 } catch(e) {}
             }
         });
-
-        // Re-read and update UI correctly
-        let modpacks = [];
-        const updatedFiles = fs.readdirSync(manifestsDir);
-        updatedFiles.forEach(file => {
-            if (file.endsWith('.json')) {
-                const content = fs.readFileSync(path.join(manifestsDir, file), 'utf8');
-                try {
-                    const parsed = JSON.parse(content);
-                    parsed.id = file.replace('.json', '');
-                    modpacks.push(parsed);
-                } catch(jsonErr) {}
-            }
-        });
-        event.sender.send('load-modpacks', modpacks);
     }
+
+    // Trigger full modpack list reload from all sources
+    event.sender.send('request-modpacks');
 });
 
 ipcMain.on('kill-game', () => {
@@ -2130,7 +2015,6 @@ ipcMain.on('launch-game', async (event, configRequest) => {
       // Removed verbose logging
       // dbg('resolved instanceName', instanceName);
 
-    const crypto = require('crypto');
     const https = require('https');
     const http = require('http');
     const { Authenticator } = require('minecraft-launcher-core');
