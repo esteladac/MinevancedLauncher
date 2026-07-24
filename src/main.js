@@ -1982,6 +1982,38 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         }
     };
     dbg('launch-game event received');
+
+    // --- LAUNCH PROGRESS TRACKING ---
+    let launchProgress = 0;
+    let minProgressTimer = null;
+
+    function updateProgress(percent, message) {
+        if (percent >= 100) {
+            launchProgress = 100;
+            stopMinProgress();
+        } else {
+            launchProgress = Math.max(launchProgress, Math.min(99, percent));
+        }
+        safeSend('update-progress', { percent: launchProgress, message: message || undefined });
+    }
+
+    function startMinProgress() {
+        stopMinProgress();
+        minProgressTimer = setInterval(() => {
+            if (launchProgress < 95) {
+                launchProgress = Math.min(95, launchProgress + 0.3);
+                safeSend('update-progress', { percent: launchProgress });
+            }
+        }, 500);
+    }
+
+    function stopMinProgress() {
+        if (minProgressTimer) { clearInterval(minProgressTimer); minProgressTimer = null; }
+    }
+
+    // Start the progress tracker immediately
+    startMinProgress();
+    updateProgress(2, 'Preparing launch...');
     // Removed verbose payload logging to reduce console spam
     // dbg('raw configRequest payload', {
     //     instance: configRequest && configRequest.instance,
@@ -1994,6 +2026,7 @@ ipcMain.on('launch-game', async (event, configRequest) => {
     if (!configRequest || !configRequest.instance || configRequest.ram === null || configRequest.ram === undefined) {
         const errMsg = 'Invalid launch payload received - ensure you have selected a modpack and created an account';
         dbg('ERROR', errMsg);
+        stopMinProgress();
         safeSend('update-status', errMsg);
         safeSend('launch-error', { title: 'Launch Error', message: errMsg });
         return;
@@ -2083,7 +2116,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
 
     try {
         // Removed verbose manifest phase logging
-        safeSend('update-status', 'Fetching Manifest from Server...');
+        safeSend('update-status', 'Fetching manifest...');
+        updateProgress(3, 'Fetching manifest...');
         const fetch = (await import('node-fetch')).default;
 
         let targetManifestUrl = `${SERVER_URL}/manifests/files/${instanceName}.json`;
@@ -2099,7 +2133,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
              const localPath = path.join(app.getAppPath(), 'manifests', `${instanceName}.json`);
              if (fs.existsSync(localPath)) {
                  manifest = JSON.parse(fs.readFileSync(localPath, 'utf8'));
-                safeSend('update-status', `Loaded Native Dev Manifest: ${manifest.minecraftVersion}`);
+                safeSend('update-status', `Loaded manifest: ${manifest.minecraftVersion}`);
+                 updateProgress(5, 'Manifest loaded.');
                  manifestLoaded = true;
              } else {
                  throw new Error("Dev manifest not found locally.");
@@ -2114,7 +2149,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             const matchingBuiltin = builtins.find(b => b.id === instanceName);
             if (matchingBuiltin) {
                 manifest = matchingBuiltin;
-                safeSend('update-status', `Loaded Built-in Manifest: ${manifest.minecraftVersion}`);
+                safeSend('update-status', `Loaded manifest: ${manifest.minecraftVersion}`);
+                updateProgress(5, 'Manifest loaded.');
                 manifestLoaded = true;
             }
         }
@@ -2124,7 +2160,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
              const response = await fetch(targetManifestUrl);
              if (!response.ok) throw new Error(`Server returned ${response.status} for manifest`);
              manifest = await response.json();
-                safeSend('update-status', `Loaded Remote Manifest: ${manifest.minecraftVersion}`);
+                safeSend('update-status', `Loaded manifest: ${manifest.minecraftVersion}`);
+                updateProgress(5, 'Manifest loaded.');
         }
         // Removed verbose manifest summary logging
 
@@ -2135,7 +2172,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         const attemptedInviteCode = configRequest && typeof configRequest.inviteCode === 'string' ? String(configRequest.inviteCode).trim() : '';
         if (!attemptedInviteCode) {
             // No invite code supplied for a manifest that could require one
-            safeSend('update-status', 'Manifest access denied. Invite code required.');
+            stopMinProgress();
+            safeSend('update-status', 'Invite code required.');
             safeSend('launch-error', {
                 title: 'Invite Code Required',
                 message: 'This modpack manifest requires a valid invite code. Add the invite code in the launcher and try again.'
@@ -2143,7 +2181,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             return;
         } else {
             // An invite code was provided but manifest load still failed (likely invalid/expired)
-            safeSend('update-status', 'Manifest access denied. Invite code invalid or expired.');
+            stopMinProgress();
+            safeSend('update-status', 'Invite code invalid or expired.');
             safeSend('launch-error', {
                 title: 'Invite Code Invalid',
                 message: 'The invite code provided appears to be invalid or expired. Re-enter the invite code or contact the server administrator.'
@@ -2184,23 +2223,20 @@ ipcMain.on('launch-game', async (event, configRequest) => {
                             needsDownload = false;
                         }
                     } else {
-                        // Without hash, assume correct if versioned file exists
                         needsDownload = false;
                     }
                 }
 
                 if (needsDownload && mod.downloadUrl) {
-                    safeSend('update-status', `Syncing Mod ${current}/${totalMods}: ${mod.name}`);
+                    safeSend('update-status', `Downloading mods (${current}/${totalMods})...`);
+                    updateProgress(5 + (current / totalMods) * 30, `Downloading mods (${current}/${totalMods})...`);
                     console.log(`[SYNC] Downloading ${mod.name} from ${mod.downloadUrl}...`);
                     await downloadFile(mod.downloadUrl, targetFilePath).catch(e => {
                         console.error(`[SYNC ERROR] Failed to download ${mod.name}:`, e);
                     });
                 }
-
-                // Update UI bar roughly
-                const progressPercent = Math.round((current / totalMods) * 100);
-                safeSend('update-status', `Syncing Mods: ${progressPercent}%`);
             }
+            updateProgress(35, 'Mods synced.');
         }
 
         // Sync General Generic Files (Configs, Resourcepacks, extra Mods, etc.)
@@ -2238,7 +2274,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
                 }
 
                 if (needsDownload && fileObj.downloadUrl) {
-                    safeSend('update-status', `Syncing File ${current}/${totalFiles}: ${path.basename(fileObj.path)}`);
+                    safeSend('update-status', `Syncing files (${current}/${totalFiles})...`);
+                    updateProgress(35 + (current / totalFiles) * 15, `Syncing files (${current}/${totalFiles})...`);
                     console.log(`[SYNC] Downloading ${fileObj.extract ? 'and extracting ' : ''}file ${fileObj.path} from ${fileObj.downloadUrl}...`);
                     await downloadFile(fileObj.downloadUrl, targetFilePath).catch(e => {
                         console.error(`[SYNC ERROR] Failed to download ${fileObj.path}:`, e);
@@ -2258,15 +2295,14 @@ ipcMain.on('launch-game', async (event, configRequest) => {
                         }
                     }
                 }
-
-                const progressPercent = Math.round((current / totalFiles) * 100);
-                safeSend('update-status', `Syncing Assets: ${progressPercent}%`);
             }
+            updateProgress(50, 'Files synced.');
         }
     } catch (syncError) {
         console.error("Sync Engine Error:", syncError);
         dbg('sync phase failed', { error: syncError.message, stack: syncError.stack });
-        safeSend('update-status', 'Warning: Sync Engine encountered an error.');
+        safeSend('update-status', 'Sync encountered an error, continuing...');
+        updateProgress(50, 'Sync error, continuing...');
         await new Promise(r => setTimeout(r, 2000));
     }
 
@@ -2301,7 +2337,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
 
         // Dynamically resolve "latest" via Mojang's API
         if (resolvedVersion === 'latest' || resolvedVersion === 'latest-snapshot') {
-            safeSend('update-status', `Resolving ${resolvedVersion} version...`);
+            safeSend('update-status', `Resolving version...`);
+            updateProgress(52, 'Resolving Minecraft version...');
             const pFetch = (await import('node-fetch')).default;
             const versionRes = await pFetch('https://launchermeta.mojang.com/mc/game/version_manifest.json');
             if (versionRes.ok) {
@@ -2328,12 +2365,66 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             }
         }
 
-        safeSend('update-status', `Initializing ${resolvedVersion} Engine...`);
-        dbg('requesting launchConfig from loader', { resolvedVersion, rootPath });
-        const launchConfig = await targetLoader.getMCLCLaunchConfig({
-            gameVersion: resolvedVersion,
-            rootPath: rootPath
-        });
+        safeSend('update-status', `Setting up ${loaderType} loader...`);
+        updateProgress(55, `Setting up ${loaderType} loader...`);
+        dbg('requesting launchConfig from loader', { resolvedVersion, rootPath, modLoaderVersion: manifest.modLoaderVersion });
+        const requestedLoaderVersion = manifest.modLoaderVersion && manifest.modLoaderVersion !== 'latest' ? manifest.modLoaderVersion : null;
+
+        let launchConfig;
+        if (loaderType === 'fabric' || loaderType === 'quilt') {
+            const loaderVer = requestedLoaderVersion || null;
+            if (loaderVer) {
+                dbg('using specific fabric/quilt loader version', { loaderVer });
+                const profile = await targetLoader.getProfile(resolvedVersion, loaderVer);
+                const versionName = `${loaderType}-${resolvedVersion}`;
+                const versionPath = path.join(rootPath, 'versions', versionName, `${versionName}.json`);
+                fs.mkdirSync(path.dirname(versionPath), { recursive: true });
+                fs.writeFileSync(versionPath, JSON.stringify(profile));
+                launchConfig = {
+                    root: rootPath,
+                    version: { number: resolvedVersion, type: 'release', custom: versionName }
+                };
+            } else {
+                launchConfig = await targetLoader.getMCLCLaunchConfig({ gameVersion: resolvedVersion, rootPath });
+            }
+        } else if (loaderType === 'forge' || loaderType === 'neoforge') {
+            if (requestedLoaderVersion) {
+                dbg('using specific forge/neoforge version', { requestedLoaderVersion });
+                const forgeJarName = loaderType === 'neoforge' ? 'neoforge.jar' : 'forge.jar';
+                const versionDir = path.join(rootPath, 'versions', `${loaderType}-${resolvedVersion}`);
+                const forgeJarPath = path.join(versionDir, forgeJarName);
+                fs.mkdirSync(versionDir, { recursive: true });
+
+                let downloadUrl;
+                if (loaderType === 'neoforge') {
+                    downloadUrl = `https://maven.neoforged.net/releases/net/neoforged/neoforge/${requestedLoaderVersion}/neoforge-${requestedLoaderVersion}-installer.jar`;
+                } else {
+                    downloadUrl = `https://maven.minecraftforge.net/net/minecraftforge/forge/${requestedLoaderVersion}/forge-${requestedLoaderVersion}-installer.jar`;
+                }
+                dbg('downloading loader installer', { downloadUrl });
+                safeSend('update-status', `Downloading ${loaderType} ${requestedLoaderVersion}...`);
+                updateProgress(56, `Downloading ${loaderType} ${requestedLoaderVersion}...`);
+                const pFetch = (await import('node-fetch')).default;
+                const installerResp = await pFetch(downloadUrl);
+                if (!installerResp.ok) throw new Error(`Failed to download ${loaderType} installer: ${installerResp.status}`);
+                const buffer = Buffer.from(await installerResp.arrayBuffer());
+                fs.writeFileSync(forgeJarPath, buffer);
+
+                launchConfig = {
+                    root: rootPath,
+                    clientPackage: null,
+                    version: { number: resolvedVersion, type: 'release', custom: `${loaderType}-${resolvedVersion}` },
+                    forge: forgeJarPath
+                };
+            } else {
+                launchConfig = await targetLoader.getMCLCLaunchConfig({ gameVersion: resolvedVersion, rootPath });
+            }
+        } else {
+            launchConfig = await targetLoader.getMCLCLaunchConfig({ gameVersion: resolvedVersion, rootPath });
+        }
+
+        updateProgress(60, 'Loader ready.');
+        safeSend('update-status', `Loader ready.`);
 
         // Use requested RAM or fallback to default
         const savedConfig = loadConfig();
@@ -2358,9 +2449,11 @@ ipcMain.on('launch-game', async (event, configRequest) => {
 
         // Ensure portable Java is ready
         safeSend('update-status', `Preparing Java ${getRequiredJavaVersion(resolvedVersion)}...`);
+        updateProgress(62, `Preparing Java ${getRequiredJavaVersion(resolvedVersion)}...`);
         dbg('fetching portable java', resolvedVersion);
         const javaPath = await getJavaPortable(resolvedVersion, dbg);
         dbg('portable java ready', { javaPath, exists: fs.existsSync(javaPath) });
+        updateProgress(65, 'Java ready.');
 
         let opts = {
             ...launchConfig,
@@ -2377,15 +2470,13 @@ ipcMain.on('launch-game', async (event, configRequest) => {
         });
 
         const progressPhases = {
-            'classes': { start: 0, end: 15 },
-            'assets': { start: 15, end: 45 },
-            'libraries': { start: 45, end: 85 },
-            'forge': { start: 85, end: 95 },
-            'fabric': { start: 85, end: 95 },
-            'natives': { start: 95, end: 100 }
+            'classes': { start: 65, end: 75 },
+            'assets': { start: 75, end: 85 },
+            'libraries': { start: 85, end: 93 },
+            'forge': { start: 93, end: 97 },
+            'fabric': { start: 93, end: 97 },
+            'natives': { start: 97, end: 98 }
         };
-        let fallbackPercent = 0;
-        let progressInterval = null; // Track artificial progress interval
         const canRenderAssetBar = !!(process.stdout && process.stdout.isTTY);
         let assetBarActive = false;
         let lastAssetBarPercent = -1;
@@ -2397,29 +2488,6 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             }
             process.stdout.write('\n');
             assetBarActive = false;
-        };
-
-        const startArtificialProgress = () => {
-            // If progress gets stuck, artificially increment to 100%
-            if (progressInterval) clearInterval(progressInterval);
-            
-            progressInterval = setInterval(() => {
-                if (fallbackPercent < 100) {
-                    fallbackPercent = Math.min(100, fallbackPercent + 2);
-                    safeSend('update-status', `Preparing Engine: ${Math.round(fallbackPercent)}%`);
-                }
-                if (fallbackPercent >= 100) {
-                    clearInterval(progressInterval);
-                    progressInterval = null;
-                }
-            }, 300);
-        };
-
-        const stopArtificialProgress = () => {
-            if (progressInterval) {
-                clearInterval(progressInterval);
-                progressInterval = null;
-            }
         };
 
         const renderAssetBar = (task, total, force = false) => {
@@ -2465,27 +2533,23 @@ ipcMain.on('launch-game', async (event, configRequest) => {
                             clearAssetBar();
                         }
 
-                        let percent = fallbackPercent;
                         if (e.type && progressPhases[e.type.toLowerCase()]) {
                             const phase = progressPhases[e.type.toLowerCase()];
                             const calculated = phase.start + (e.task / e.total) * (phase.end - phase.start);
                             if (!isNaN(calculated)) {
-                                percent = Math.max(fallbackPercent, calculated);
-                                fallbackPercent = percent;
+                                updateProgress(calculated);
                             }
                         }
 
-                        if (fallbackPercent >= 45 && !progressInterval) {
-                            startArtificialProgress();
-                        }
-
                         const displayType = e.type ? e.type.charAt(0).toUpperCase() + e.type.slice(1) : 'Engine';
-                        safeSend('update-status', `Checking ${displayType}: ${Math.round(percent)}%`);
+                        safeSend('update-status', `Verifying ${displayType} (${Math.round(launchProgress)}%)...`);
+                        updateProgress(launchProgress, `Verifying ${displayType}...`);
                         break;
                     }
                     case 'download-status': {
                         const shortName = e.name ? (e.name.length > 50 ? '...' + e.name.slice(-50) : e.name) : 'files...';
-                        safeSend('update-status', `Downloading: ${shortName} ${Math.round(fallbackPercent)}%`);
+                        safeSend('update-status', `Downloading: ${shortName}`);
+                        updateProgress(launchProgress, `Downloading ${shortName}`);
                         break;
                     }
                     case 'data': {
@@ -2506,9 +2570,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
                             }
                         }
                         if (e.includes("Setting user:")) {
-                            stopArtificialProgress();
-                            fallbackPercent = 100;
-                            safeSend('update-status', 'Game is running! 100%');
+                            stopMinProgress();
+                            updateProgress(100, 'Game is running!');
                         }
                         break;
                     }
@@ -2520,13 +2583,13 @@ ipcMain.on('launch-game', async (event, configRequest) => {
                         break;
                     case 'error':
                         clearAssetBar();
-                        stopArtificialProgress();
+                        stopMinProgress();
                         safeSend('game-log', `[ERROR] ${e}`);
                         console.error(`[${launchTraceId}] [GAME ERROR EVENT]`, e);
                         break;
                     case 'close': {
                         clearAssetBar();
-                        stopArtificialProgress();
+                        stopMinProgress();
                         const exitCode = typeof e === 'number' ? e : (e && typeof e.code === 'number' ? e.code : -1);
                         console.log("Game exited with code:", exitCode);
 
@@ -2566,10 +2629,19 @@ ipcMain.on('launch-game', async (event, configRequest) => {
                 activeGameProcess = { pid: msg.pid };
                 console.log("Game process started.", msg.pid ? `PID: ${msg.pid}` : '');
                 dbg('launch process resolved', { pid: msg.pid });
+                // Fallback: if "Setting user:" never appears (newer MC versions),
+                // force mark as running a few seconds after the process starts.
+                setTimeout(() => {
+                    if (launchProgress < 100) {
+                        stopMinProgress();
+                        updateProgress(100, 'Game is running!');
+                    }
+                }, 5000);
             } else if (msg.type === 'error') {
                 console.error("Engine Launch Error:", msg.message);
                 dbg('engine phase failed', { message: msg.message, stack: msg.stack });
-                safeSend('update-status', 'Error: Engine failed to launch.');
+                stopMinProgress();
+                safeSend('update-status', 'Engine launch failed.');
                 safeSend('launch-error', {
                     title: 'Engine Launch Failed',
                     message: msg.message || 'Unable to start the game.'
@@ -2592,7 +2664,8 @@ ipcMain.on('launch-game', async (event, configRequest) => {
             stack: engineError && engineError.stack,
             name: engineError && engineError.name
         });
-        safeSend('update-status', 'Error: Engine failed to launch.');
+        stopMinProgress();
+        safeSend('update-status', 'Engine launch failed.');
         safeSend('launch-error', {
             title: 'Engine Launch Failed',
             message: engineError && engineError.message ? engineError.message : 'Unable to start the game.'

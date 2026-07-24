@@ -682,6 +682,36 @@ body.minimizing .window-wrapper {
     50% { box-shadow: 0 0 15px var(--accent-purple), inset 0 0 8px rgba(123, 82, 244, 0.2); }
 }
 
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+
+@keyframes barPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+#dl-progress-bar {
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#dl-progress-bar.indeterminate {
+    width: 40% !important;
+    animation: barPulse 1.2s ease-in-out infinite;
+}
+
+#dl-progress-bar.indeterminate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
 /* --- SETTINGS VIEW --- */
 .settings-header h2 { margin: 0 0 5px 0; font-size: 32px; }
 .settings-header p { color: var(--text-dim); margin-bottom: 30px; }

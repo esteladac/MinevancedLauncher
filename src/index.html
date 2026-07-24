@@ -1427,7 +1427,7 @@
             btn.style.opacity = "0.7";
             btn.style.pointerEvents = "none";
             btn.style.background = "var(--accent-purple)";
-            document.getElementById('download-tracker').classList.add('hidden');
+            document.getElementById('download-tracker').classList.remove('hidden');
             ipcRenderer.send('launch-game', payload);
         }
 
@@ -1474,57 +1474,50 @@
             launchGame(payload);
         });
 
-        // Listen for live sync/download progress from backend with throttling to prevent flicker
-        let lastStatusUpdate = 0;
-        let pendingStatusUpdate = null;
-        const STATUS_THROTTLE_MS = 150; // Max update frequency
-        let statusUpdateTimeout = null;
+        // --- STRUCTURED PROGRESS SYSTEM ---
+        let currentProgress = 0;
+        let progressIndeterminateTimeout = null;
+        const barEl = document.getElementById('dl-progress-bar');
+        const progressTextEl = document.getElementById('dl-progress');
 
-        function applyStatusUpdate(message) {
-            document.getElementById('dl-progress').innerText = message;
-            
-            // Parse progress percentage from message
-            const match = message.match(/(\d+)%/);
-            if (match) {
-                const percent = parseInt(match[1], 10);
-                document.getElementById('dl-progress-bar').style.width = percent + '%';
-            } else if (message.toLowerCase().includes('launching') || message.toLowerCase().includes('done')) {
-                document.getElementById('dl-progress-bar').style.width = '100%';
-            }
+        function setProgressBar(percent, message) {
+            if (progressIndeterminateTimeout) { clearTimeout(progressIndeterminateTimeout); progressIndeterminateTimeout = null; }
+            barEl.classList.remove('indeterminate');
+            currentProgress = percent;
+            barEl.style.width = percent + '%';
+            if (message) progressTextEl.innerText = message;
+            // After 2 seconds with no update, switch to indeterminate shimmer
+            progressIndeterminateTimeout = setTimeout(() => {
+                barEl.classList.add('indeterminate');
+            }, 2000);
+        }
 
-            if (message.includes("Game is running!")) {
+        ipcRenderer.on('update-progress', (event, data) => {
+            const percent = typeof data.percent === 'number' ? data.percent : 0;
+            const message = data.message || null;
+            setProgressBar(percent, message);
+
+            if (percent >= 100 && message && message.includes('Game is running')) {
                 const btn = document.getElementById('play-btn');
                 btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg> STOP GAME`;
                 btn.style.background = "#d32f2f";
                 btn.style.opacity = "1";
                 btn.style.pointerEvents = "auto";
-                
-                // Show logs button
                 document.getElementById('logs-btn').style.display = 'flex';
             }
-        }
+        });
 
+        // Fallback: keep update-status updating the text label (but NOT the bar)
         ipcRenderer.on('update-status', (event, message) => {
-            const now = Date.now();
-            pendingStatusUpdate = message;
-            
-            // Clear any pending timeout
-            if (statusUpdateTimeout) clearTimeout(statusUpdateTimeout);
-            
-            // If enough time has passed, apply immediately
-            if (now - lastStatusUpdate >= STATUS_THROTTLE_MS) {
-                applyStatusUpdate(message);
-                lastStatusUpdate = now;
-            } else {
-                // Schedule update for after throttle period
-                const delayMs = STATUS_THROTTLE_MS - (now - lastStatusUpdate);
-                statusUpdateTimeout = setTimeout(() => {
-                    if (pendingStatusUpdate) {
-                        applyStatusUpdate(pendingStatusUpdate);
-                        lastStatusUpdate = Date.now();
-                        pendingStatusUpdate = null;
-                    }
-                }, delayMs);
+            progressTextEl.innerText = message;
+            if (message.includes("Game is running!")) {
+                setProgressBar(100, message);
+                const btn = document.getElementById('play-btn');
+                btn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg> STOP GAME`;
+                btn.style.background = "#d32f2f";
+                btn.style.opacity = "1";
+                btn.style.pointerEvents = "auto";
+                document.getElementById('logs-btn').style.display = 'flex';
             }
         });
 
@@ -1659,16 +1652,16 @@
             btn.style.pointerEvents = "auto";
             
             document.getElementById('download-tracker').classList.add('hidden');
-            document.getElementById('dl-progress-bar').style.width = '0%';
-            document.getElementById('dl-progress').innerText = 'Waiting for engine...';
+            barEl.style.width = '0%';
+            barEl.classList.remove('indeterminate');
+            progressTextEl.innerText = 'Waiting for engine...';
+            currentProgress = 0;
             
             // Hide logs button
             document.getElementById('logs-btn').style.display = 'none';
             
-            // Clear any pending throttled updates when game closes
-            if (statusUpdateTimeout) clearTimeout(statusUpdateTimeout);
-            pendingStatusUpdate = null;
-            lastStatusUpdate = 0;
+            // Clear any pending timers
+            if (progressIndeterminateTimeout) { clearTimeout(progressIndeterminateTimeout); progressIndeterminateTimeout = null; }
         });
 
         // Top right profile click opens Auth view
