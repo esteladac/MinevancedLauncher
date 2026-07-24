@@ -1368,6 +1368,7 @@ async function deleteBugReport(id, btn) {
 let currentModpackId = null;
 let wizardStep = 1;
 let wizardPackId = null;
+let currentEditPack = null;
 let wizardInviteCode = null;
 const wizardSteps = ['Basics', 'Config', 'Mods', 'Review'];
 
@@ -1397,8 +1398,23 @@ async function openCreateModpack() {
     wizardStep = 1;
     wizardPackId = null;
     wizardInviteCode = null;
+    currentEditPack = null;
     renderWizardStep1();
     document.getElementById('modal-overlay').classList.add('open');
+}
+
+function buildModrinthFacets(minecraftVersion, modLoader) {
+    const facets = [];
+    if (modLoader && modLoader !== 'vanilla') facets.push([`categories:${modLoader}`]);
+    if (minecraftVersion) facets.push([`versions:${minecraftVersion}`]);
+    return facets.length > 0 ? encodeURIComponent(JSON.stringify(facets)) : '';
+}
+
+function buildModrinthVersionParams(modLoader, minecraftVersion) {
+    const params = new URLSearchParams();
+    if (modLoader && modLoader !== 'vanilla') params.set('loaders', JSON.stringify([modLoader]));
+    if (minecraftVersion) params.set('versions', JSON.stringify([minecraftVersion]));
+    return params.toString();
 }
 
 function renderWizardStep1() {
@@ -1682,7 +1698,13 @@ async function searchModrinthWizard() {
     const results = document.getElementById('modrinth-results');
     results.innerHTML = '<div class="modrinth-loading">Searching Modrinth...</div>';
     try {
-        const data = await api('GET', `/admin/api/modrinth/search?q=${encodeURIComponent(query)}&limit=12`);
+        let facetsParam = '';
+        if (wizardPackId) {
+            const pack = await api('GET', `/admin/api/modpacks/${wizardPackId}`);
+            facetsParam = buildModrinthFacets(pack.minecraftVersion, pack.modLoader);
+        }
+        const facetStr = facetsParam ? `&facets=${facetsParam}` : '';
+        const data = await api('GET', `/admin/api/modrinth/search?q=${encodeURIComponent(query)}&limit=12${facetStr}`);
         if (!data.hits || data.hits.length === 0) {
             results.innerHTML = '<div class="modrinth-empty">No results found. Try a different search term.</div>';
             return;
@@ -1715,13 +1737,19 @@ async function searchModrinthWizard() {
 async function addModrinthModWizard(slug, title, btn) {
     if (btn) { btn.textContent = '...'; btn.disabled = true; }
     try {
-        const versions = await api('GET', `/admin/api/modrinth/mod/${slug}/versions`);
-        if (!versions || versions.length === 0) { toast('No versions available', 'error'); if (btn) { btn.textContent = 'Add'; btn.disabled = false; } return; }
+        let versionParams = '';
+        if (wizardPackId) {
+            const pack = await api('GET', `/admin/api/modpacks/${wizardPackId}`);
+            versionParams = buildModrinthVersionParams(pack.modLoader, pack.minecraftVersion);
+        }
+        const versionQuery = versionParams ? `?${versionParams}` : '';
+        const versions = await api('GET', `/admin/api/modrinth/mod/${slug}/versions${versionQuery}`);
+        if (!versions || versions.length === 0) { toast('No compatible versions found for this modpack\'s loader/version', 'error'); if (btn) { btn.textContent = 'Add'; btn.disabled = false; } return; }
         const latest = versions[0];
         const downloadUrl = latest.files[0]?.url;
         if (!downloadUrl) { toast('No download URL found', 'error'); if (btn) { btn.textContent = 'Add'; btn.disabled = false; } return; }
         await api('POST', `/admin/api/modpacks/${wizardPackId}/mods`, {
-            mod_name: title, version: latest.version_number, url: downloadUrl, source_id: slug
+            name: title, version: latest.version_number, download_url: downloadUrl, source_id: slug
         });
         const card = document.getElementById(`mr-${slug}`);
         if (card) {
@@ -1745,7 +1773,7 @@ async function addModByUrlWizard() {
     if (!url) return toast('URL is required', 'error');
     if (!name) return toast('Mod name is required', 'error');
     try {
-        await api('POST', `/admin/api/modpacks/${wizardPackId}/mods`, { mod_name: name, version, url });
+        await api('POST', `/admin/api/modpacks/${wizardPackId}/mods`, { name, version, download_url: url });
         toast('Mod added', 'success');
         document.getElementById('mod-url-input').value = '';
         document.getElementById('mod-name-input').value = '';
@@ -1846,6 +1874,7 @@ async function editModpack(id) {
     try {
         const pack = await api('GET', `/admin/api/modpacks/${id}`);
         currentModpackId = id;
+        currentEditPack = pack;
         const modal = document.getElementById('modal-content');
         modal.className = 'modal wizard-modal';
         modal.innerHTML = `
@@ -2023,7 +2052,7 @@ async function addModByUrl(packId) {
     if (!url) return toast('URL is required', 'error');
     if (!name) return toast('Mod name is required', 'error');
     try {
-        await api('POST', `/admin/api/modpacks/${packId}/mods`, { mod_name: name, version, url });
+        await api('POST', `/admin/api/modpacks/${packId}/mods`, { name, version, download_url: url });
         toast('Mod added', 'success');
         editModpack(packId);
     } catch (e) {
@@ -2067,7 +2096,15 @@ async function searchModrinth(packId) {
     const results = document.getElementById('modrinth-results');
     results.innerHTML = '<div class="modrinth-loading">Searching Modrinth...</div>';
     try {
-        const data = await api('GET', `/admin/api/modrinth/search?q=${encodeURIComponent(query)}&limit=12`);
+        let facetsParam = '';
+        if (!currentEditPack || currentEditPack.id !== packId) {
+            currentEditPack = await api('GET', `/admin/api/modpacks/${packId}`);
+        }
+        if (currentEditPack) {
+            facetsParam = buildModrinthFacets(currentEditPack.minecraftVersion, currentEditPack.modLoader);
+        }
+        const facetStr = facetsParam ? `&facets=${facetsParam}` : '';
+        const data = await api('GET', `/admin/api/modrinth/search?q=${encodeURIComponent(query)}&limit=12${facetStr}`);
         if (!data.hits || data.hits.length === 0) {
             results.innerHTML = '<div class="modrinth-empty">No results found.</div>';
             return;
@@ -2099,13 +2136,18 @@ async function searchModrinth(packId) {
 async function addModrinthModEdit(packId, slug, title, btn) {
     if (btn) { btn.textContent = '...'; btn.disabled = true; }
     try {
-        const versions = await api('GET', `/admin/api/modrinth/mod/${slug}/versions`);
-        if (!versions || versions.length === 0) { toast('No versions available', 'error'); if (btn) { btn.textContent = 'Add'; btn.disabled = false; } return; }
+        let versionParams = '';
+        if (currentEditPack && currentEditPack.id == packId) {
+            versionParams = buildModrinthVersionParams(currentEditPack.modLoader, currentEditPack.minecraftVersion);
+        }
+        const versionQuery = versionParams ? `?${versionParams}` : '';
+        const versions = await api('GET', `/admin/api/modrinth/mod/${slug}/versions${versionQuery}`);
+        if (!versions || versions.length === 0) { toast('No compatible versions found for this modpack\'s loader/version', 'error'); if (btn) { btn.textContent = 'Add'; btn.disabled = false; } return; }
         const latest = versions[0];
         const downloadUrl = latest.files[0]?.url;
         if (!downloadUrl) { toast('No download URL found', 'error'); if (btn) { btn.textContent = 'Add'; btn.disabled = false; } return; }
         await api('POST', `/admin/api/modpacks/${packId}/mods`, {
-            mod_name: title, version: latest.version_number, url: downloadUrl, source_id: slug
+            name: title, version: latest.version_number, download_url: downloadUrl, source_id: slug
         });
         const card = document.getElementById(`mr-edit-${slug}`);
         if (card) {
