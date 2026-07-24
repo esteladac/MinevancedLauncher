@@ -421,12 +421,18 @@ router.get('/admin/api/loader-versions', requireAdmin, async (req, res) => {
         }
 
         if (loader === 'neoforge') {
-            const response = await fetch(`https://api.neoforged.net/versions/loader?game_version=${encodeURIComponent(minecraft_version)}`, {
+            const response = await fetch(`https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml`, {
                 headers: { 'User-Agent': 'MinevancedLauncher/1.0' }
             });
             if (!response.ok) return res.json([]);
-            const data = await response.json();
-            return res.json(data.map(v => v.version).sort().reverse());
+            const xml = await response.text();
+            const parts = minecraft_version.split('.');
+            const prefix = parts.length >= 2 ? `${parts[1]}.${parts[2] || '0'}` : minecraft_version;
+            const versions = [...xml.matchAll(/<version>([^<]+)<\/version>/g)]
+                .map(m => m[1])
+                .filter(v => v.startsWith(prefix + '.'))
+                .sort().reverse();
+            return res.json(versions);
         }
 
         res.json([]);
